@@ -20,6 +20,7 @@ def cal_intervalos(df,valor_inicio,intervalo):
     '''
     Return a DataFrame where each column is a class interval
     '''    
+    df=df.copy()
     len_var=df.resp.max() ##valor máximo
     list_in=(list(range(valor_inicio,len_var+1,intervalo))) # lista con los intervalos 
 
