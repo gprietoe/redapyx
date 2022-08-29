@@ -5,24 +5,7 @@ from .continuous_variables import clean_continuous_var
 from .continuous_variables import cal_intervalos
 from .continuous_variables import cal_descriptivos
 
-### Función para limpiar los caracteres especiales
-def clean_str(df):
-    df=df.copy()
-    dic_replace={"Á":"A","É":"E","Í":"I","Ó":"O","Ú":"U","-":"","\/":""}
-    df=(
-        df.
-        assign(resp=lambda df_:df_.resp.
-               str.upper().
-               str.strip().
-               replace(dic_replace, regex=True)
-              )
-    )
-    return df
-
-### indetificar el index
-def pivot_table(df):
-    df=df.pivot(index="ubigeo",columns="resp", values="fre")
-    return df
+from .discrete_variables import *
 
 ## Utilizamos la tabla resumen para crear la matriz de los valores posibles de la pregunta
 def total_cat(df):
@@ -77,7 +60,7 @@ def analys_cont_var(df, kind,valor_inicio,intervalo):
         df=cal_descriptivos(df)
     return df
 
-def conversion_redatam_matriz(df, continuous=False, kind=None, valor_inicio=0, intervalo=None):
+def conversion_redatam_matriz(df, continuous=False, kind=None, valor_inicio=0, intervalo=None, fila_filtro=None):
     """
     conversion_redatam_matriz(df: 'DataFrame') -> Dataframe
     
@@ -87,9 +70,10 @@ def conversion_redatam_matriz(df, continuous=False, kind=None, valor_inicio=0, i
     La base de datos resultante es un DataFrame con el ubigeo como índice
 
     """
+    df=df.copy()
     df=df[[df.columns[1], df.columns[2]]].copy()
     df.columns=["resp", "fre"]
-    df=clean_str(df)
+    df=clean_str(df, column='resp')
     
     df_rf=total_cat(df)                        ##categorías del resumen
     ubigeo,list_index_f=list_ubigeo_index(df)  ## Lista de ubigeos e indexes
@@ -108,8 +92,50 @@ def conversion_redatam_matriz(df, continuous=False, kind=None, valor_inicio=0, i
              )
 
     else:
+        df_f=(index_filter_uni(df_f,fila_filtro).
+              fillna(0)
+             )
+    return df_f
+
+
+
+def tabla_cruzada(df, continuous=False, kind=None, valor_inicio=0, intervalo=None, fila_filtro=None, columna_filtro=None):
+    """
+    conversion_redatam_matriz(df: 'DataFrame') -> Dataframe
+    
+    #Docstring:
+    Permite de organizar los datos descargados de la plataforma de REDATAM - (INEI) en una formato de base datos de dos dimensiones.
+    La base de datos de ingreso corresponde a un archivo en formato Excel, el cual se descarga luego de la busqueda de variables en REDATAM
+    La base de datos resultante es un DataFrame con el ubigeo como índice
+
+    """
+    df=df.iloc[:,1:].copy()
+    ## se limpia la columna con las respuestas de las categorías "fila"
+    df=(df.
+        rename({df.columns[0]:"resp"},axis=1).
+        pipe(clean_str, column='resp')
+       )
+
+    ubigeo, list_index_f=list_ubigeo_index(df)
+    ubigeos_des=[]
+    
+    for p in list(range(0,len(list_index_f))): ## loop para extraer y los datos para cada ubigeo
+        ubigeos_des.append(df.
+                           pipe(extrac_freq_ubigeo,p).
+                           pipe(clean_columns_answers)
+                          )
+    df_f=(pd.concat(ubigeos_des,axis=0))
+    df_f=df_f.rename({np.nan:"fila"},axis=1)
+    
+    if continuous==True:
+        df_f=df_f.copy()
+        
+    else:
         df_f=(df_f.
               groupby("ubigeo").
-              apply(pivot_table).
-              fillna(0))
+              apply(multi_index).
+              pipe(clean_data).
+              pipe(index_filter, fila_filtro, columna_filtro)
+             )
+    
     return df_f
