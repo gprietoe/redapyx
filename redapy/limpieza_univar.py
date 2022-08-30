@@ -7,6 +7,12 @@ from .continuous_variables import cal_descriptivos
 
 from .discrete_variables import *
 
+
+def pivot_table(df, column, values):
+    df=df.copy()
+    df=df.pivot(columns=column, values=values)
+    return df
+
 ## Utilizamos la tabla resumen para crear la matriz de los valores posibles de la pregunta
 def total_cat(df):
     
@@ -49,16 +55,38 @@ def extrac_freq_ubigeo(df,i_start_var):
     
     return df_f
 
-def analys_cont_var(df, kind,valor_inicio,intervalo):
+### create a multicolumn for the descriptive statistics
+def multi_column_des(df, values=None):
+    fila_1=values
+    tup=[(fila_1,'numero de casos'), (fila_1,'suma'), (fila_1,'maximo'), (fila_1,'minimo'), (fila_1,'promedio'), (fila_1,'varianza'),
+           (fila_1,'des estandar'), (fila_1,'coeficiente de variacion')]
+
+    df.columns=pd.MultiIndex.from_tuples(tup)
+    return df
+
+def analys_cont_var(df, kind, valor_inicio,intervalo, column, values):
     df= df.copy()
-    df=clean_continuous_var(df)
     
     if kind =="intervalos":
-        df=cal_intervalos(df,valor_inicio,intervalo)
+        df_f=(cal_intervalos(df,valor_inicio,intervalo, column).
+              pipe(pivot_table,column,values)
+             )
         
     elif kind == "descriptivos":
-        df=cal_descriptivos(df)
-    return df
+        if len(values)>1:
+            list_des=[]
+            for p in values:
+                (
+                    list_des.
+                    append(cal_descriptivos(df, values=p, fila=column).
+                           pipe(multi_column_des, values=p)
+                          )
+                )
+            df_f=pd.concat(list_des,axis=1)
+        else:
+            df_f=cal_descriptivos(df)
+    
+    return df_f
 
 def conversion_redatam_matriz(df, continuous=False, kind=None, valor_inicio=0, intervalo=None, fila_filtro=None):
     """
@@ -86,18 +114,18 @@ def conversion_redatam_matriz(df, continuous=False, kind=None, valor_inicio=0, i
     df_f=(pd.concat(ubigeos_des,axis=0))
     
     if continuous==True:
+        list_var, df_f=clean_continuous_var(df_f, column='resp')
         df_f=(df_f.
               groupby("ubigeo").
-              apply(analys_cont_var, kind, valor_inicio,intervalo)
+              apply(analys_cont_var, kind, valor_inicio, intervalo, column='resp', values=list_var).
+              fillna(0).
+              reset_index(level=1, drop=True)
              )
-
     else:
         df_f=(index_filter_uni(df_f,fila_filtro).
               fillna(0)
              )
     return df_f
-
-
 
 def tabla_cruzada(df, continuous=False, kind=None, valor_inicio=0, intervalo=None, fila_filtro=None, columna_filtro=None):
     """
@@ -128,7 +156,13 @@ def tabla_cruzada(df, continuous=False, kind=None, valor_inicio=0, intervalo=Non
     df_f=df_f.rename({np.nan:"fila"},axis=1)
     
     if continuous==True:
-        df_f=df_f.copy()
+        list_var, df_f=clean_continuous_var(df_f, column='fila')
+        df_f=(df_f.
+              groupby("ubigeo").
+              apply(analys_cont_var, kind, valor_inicio, intervalo, column='fila', values=list_var).
+              fillna(0).
+              reset_index(level=1, drop=True)
+             )
         
     else:
         df_f=(df_f.
