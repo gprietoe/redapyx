@@ -26,6 +26,7 @@ def index_filter_uni(df, fila_filtro):
             reset_index().
             pivot(index="ubigeo",columns="resp", values="fre"))
     else:
+#         df=df.copy()
         df=df.pivot(index="ubigeo",columns="resp", values="fre")
     return df
 
