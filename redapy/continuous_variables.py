@@ -5,12 +5,20 @@ import numpy as np
 def clean_continuous_var(df, column=None):
     df=df.copy()
     df_columns=df.columns.tolist()[1:-1] ## Todas las columnas con excepción de la Fila y el ubigeo
+    df_columns = [x for x in df_columns if str(x) != 'nan']
     try:
         df[column]=(df[column].
                     apply(lambda x:"".join(filter(str.isnumeric, str(x)))).
                    astype(int))
         for cols in df_columns:
-            df[cols]=df[cols].replace("-","0", regex=True).astype(int)        
+            try:
+                df[cols]=df[cols].replace("-","0", regex=True).astype(int)
+            except:
+                df[cols]=(df[cols].
+                          replace("-","0", regex=True).
+                          replace(" ","", regex=True).
+                          astype(int)
+                         )
     except:
         raise AssertionError("La variable bajo análisis no es continua")
     return df_columns, df
@@ -30,12 +38,11 @@ def cal_intervalos(df, valor_inicio, intervalo, column="resp"):
         df["lim_s"]=np.where((df[column]>=p)&(df[column]<=p+intervalo),p+intervalo-1,df.lim_s)
         df["resp2"]=np.where((df[column]>=p)&(df[column]<=p+intervalo),str(p)+"-"+str(p+intervalo-1),df.resp2)
 
-    #df["resp2"]=np.where((df.lim_s>len_var), str(max(list_in))+"-"+str(len_var-1),df.resp2)
     del df[column]
     df=(df.
         rename({"resp2":column},axis=1).
         groupby(["ubigeo","lim_s",column]).
-        sum().
+        sum().  ## BUG The default value of numeric_only in DataFrameGroupBy.sum is deprecated.
         reset_index(["lim_s",column]).
         sort_values("lim_s").
         copy()

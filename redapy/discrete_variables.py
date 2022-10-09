@@ -26,7 +26,6 @@ def index_filter_uni(df, fila_filtro):
             reset_index().
             pivot(index="ubigeo",columns="resp", values="fre"))
     else:
-#         df=df.copy()
         df=df.pivot(index="ubigeo",columns="resp", values="fre")
     return df
 
@@ -59,10 +58,17 @@ def clean_data(df):
         rename(index=str.strip).
         pipe(clean_str, column="columna").
         query('columna != "UBIGEO"').
-        rename({0:'freq'},axis=1).
+        rename({0:'freq'},axis=1))
+    try:
+        df=(df.assign(freq=lambda df_:df_.freq.str.replace(" ","")).
         replace("-","0",regex=True).
         assign(freq=lambda df_:df_.freq.astype(int))
        )
+    except:
+        df=(df.replace("-","0",regex=True).
+        assign(freq=lambda df_:df_.freq.astype(int))
+       )
+        
     return df.set_index([df.index,"columna"])
 
 def index_filter(df,fila_filtro=None, columna_filtro=None):

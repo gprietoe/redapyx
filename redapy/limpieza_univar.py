@@ -31,7 +31,7 @@ def total_cat(df):
 
 ## Crea una lista con los ubigeos de la dataframe 
 def list_ubigeo_index(df):
-    ubigeo=(df.query('resp.notna() and resp.str.startswith("AREA")')
+    ubigeo=(df.query('resp.notna() and resp.str.startswith("AREA #")')
             ["resp"].
             copy()
            ) ## extrae los ubigeos de cada tabla
@@ -73,7 +73,7 @@ def analys_cont_var(df, kind, valor_inicio,intervalo, column, values):
              )
         
     elif kind == "descriptivos":
-        if len(values)>1:
+        if len(values)>1: ## if columns are more than 1, if it's true, there are more than 1 variable
             list_des=[]
             for p in values:
                 (
@@ -153,7 +153,7 @@ def tabla_cruzada(df, continuous=False, kind=None, valor_inicio=0, intervalo=Non
                            pipe(clean_columns_answers)
                           )
     df_f=(pd.concat(ubigeos_des,axis=0))
-    df_f=df_f.rename({np.nan:"fila"},axis=1)
+    df_f=df_f.rename({df_f.columns[0]:"fila"},axis=1)
     
     if continuous==True:
         list_var, df_f=clean_continuous_var(df_f, column='fila')
@@ -168,8 +168,9 @@ def tabla_cruzada(df, continuous=False, kind=None, valor_inicio=0, intervalo=Non
         df_f=(df_f.
               groupby("ubigeo").
               apply(multi_index).
-              pipe(clean_data).
-              pipe(index_filter, fila_filtro, columna_filtro)
+              pipe(clean_data)
              )
+#               pipe(index_filter, fila_filtro, columna_filtro)
+#              )
     
     return df_f
