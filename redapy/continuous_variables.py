@@ -3,6 +3,9 @@ import numpy as np
 
 ## Función para convertir las variables continuas en integrales
 def clean_continuous_var(df, column=None):
+    '''
+    Return a dataframe 
+    '''
     df=df.copy()
     df_columns=df.columns.tolist()[1:-1] ## Todas las columnas con excepción de la Fila y el ubigeo
     df_columns = [x for x in df_columns if str(x) != 'nan']
@@ -79,4 +82,10 @@ def cal_descriptivos(df, values="fre", fila="resp"):
     
     return df_f
     
-    
+def multi_column_des(df, values=None):
+    fila_1=values
+    tup=[(fila_1,'numero de casos'), (fila_1,'suma'), (fila_1,'maximo'), (fila_1,'minimo'), (fila_1,'promedio'), (fila_1,'varianza'),
+           (fila_1,'des estandar'), (fila_1,'coeficiente de variacion')]
+
+    df.columns=pd.MultiIndex.from_tuples(tup)
+    return df
