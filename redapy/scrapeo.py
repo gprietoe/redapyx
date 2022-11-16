@@ -67,14 +67,15 @@ def make_query_2017(query, url, ser_url): # hace consulta "query" a redatam a tr
         tiempo = datetime.datetime.now() - begin_time
         print(tiempo)
         table_final = pd.concat(tables)
-        if "SELECTION INLINE," in query:
-            query_temp = query.split() 
-            table_final['UBIGEO'] = query_temp[5]
-            col = table_final.pop("UBIGEO")
-            table_final.insert(0, col.name, col)
-            return table_final
-        else:
-            return table_final
+        # if "SELECTION INLINE," in query:
+        #     query_temp = query.split() 
+        #     table_final['UBIGEO'] = query_temp[5]
+        #     col = table_final.pop("UBIGEO")
+        #     table_final.insert(0, col.name, col)
+        #     return table_final
+        # else:
+        #     return table_final
+        return table_final
     except: 
         print('No se logró scrapear la tabla')
         return ""
