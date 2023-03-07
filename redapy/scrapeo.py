@@ -31,6 +31,7 @@ def make_query_2017(query, url, service_path=None, test=False): # hace consulta 
     print('Scrapeo iniciado')    
     options = webdriver.ChromeOptions() #carga configuración del webdriver
     options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
     
     ## Se puede establecer la ruta donde se encuentra el service (ChromeDriver) o se puede copiar el .exe en una de las rutas usadas por el notebook.
     ## Para el caso de google colab es mejor copiar el service en uno de paths del sistema del environment. Estos se pueden ver usando sys.path

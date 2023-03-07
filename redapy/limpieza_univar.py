@@ -18,7 +18,7 @@ def list_ubigeo_index(df):
     '''
     Returns two list, one with the INEI's unique code (ubigeo) and the second one with each ubigeo's index position
     '''
-    ubigeo=(df.query('resp.notna() and resp.str.startswith("AREA #")')
+    ubigeo=(df.query('resp.notna() and resp.str.startswith("AREA #")', engine='Python')
             ["resp"].
             copy()
            ) ## extrae los ubigeos de cada tabla
@@ -38,7 +38,7 @@ def extrac_freq_ubigeo(df,i_start_var):
     ##
     i_start_u=df.loc[index_table+3:].copy()
     i_start_u["resp"]=i_start_u["resp"].str.strip()
-    i_end_u=i_start_u.query('resp.notna() and resp=="Total"')[i_start_u.columns[0]].index[0]-1
+    i_end_u=i_start_u.query('resp.notna() and resp=="Total"', engine='Python')[i_start_u.columns[0]].index[0]-1
     df_f=df.loc[i_start_u.index.values[0]:i_end_u].copy()
     df_f["ubigeo"]=str(ubigeo_nom)
     
@@ -199,7 +199,7 @@ def cross_table(df, filter_var=False, pivot=False, continuous=False, kind=None, 
                         set_names(["ubigeo","fila","columna"])
                        )
             df_f=(df_f.reset_index().
-                  query('columna!="ubigeo"').
+                  query('columna!="ubigeo"', engine='Python').
                   set_index(["ubigeo","fila","columna"])
                  )
             df_f["freq"]=(df_f.replace("-","0",regex=True).
