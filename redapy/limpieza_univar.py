@@ -33,9 +33,8 @@ def extrac_freq_ubigeo(df,i_start_var):
     ubigeo, list_index=list_ubigeo_index(df)
     index_table=list_index[i_start_var]
     
-    # ubigeo_nom=ubigeo.loc[index_table:index_table+1].str.split("")[1][7:]
-    for p,q in ubigeo.loc[index_table:index_table+1].items():
-        ubigeo_nom=q[7:]
+    ubigeo_nom = ubigeo.loc[index_table][7:]
+    
     ##
     i_start_u=df.loc[index_table+3:].copy()
     i_start_u["resp"]=i_start_u["resp"].str.strip()
@@ -105,17 +104,13 @@ def frequency(df, pivot=False, continuous=False, kind=None, start=0, interval=No
         
     """
     df=df.copy()
-    df=df[[df.columns[1], df.columns[2]]].copy()
+    df=df[[df.columns[1], df.columns[2]]]
     df.columns=["resp", "fre"]
     
-    ubigeo,list_index_f=list_ubigeo_index(df)  ## Lista de ubigeos e indexes
-    ubigeos_des=[]
+    ubigeo, list_index_f = list_ubigeo_index(df)  ## Lista de ubigeos e indexes
     
-    for p in list(range(0,len(list_index_f))): ## loop para extraer y los datos para cada ubigeo
-        ubigeos_des.append(df.
-                           pipe(extrac_freq_ubigeo,p)
-                          )
-    df_f=(pd.concat(ubigeos_des,axis=0))
+    ubigeos_des = [df.pipe(extrac_freq_ubigeo, p) for p in list(range(len(list_index_f)))]
+    df_f=pd.concat(ubigeos_des,axis=0)
               
     if continuous==True:
         list_var, df_f=clean_continuous_var(df_f, column='resp')
@@ -168,26 +163,20 @@ def cross_table(df, filter_var=False, pivot=False, continuous=False, kind=None, 
        )
 
     ubigeo, list_index_f=list_ubigeo_index(df)
-    ubigeos_des=[]
     
     if filter_var==False:
-        for p in list(range(0,len(list_index_f))): ## loop para extraer y los datos para cada ubigeo
-            ubigeos_des.append(df.
-                               pipe(extrac_freq_ubigeo,p).
-                               pipe(clean_columns_answers,filter_var)
-                              )
-
-        df_f=(pd.concat(ubigeos_des,axis=0))
+        ubigeos_des = [df.pipe(extrac_freq_ubigeo, p).
+                       pipe(clean_columns_answers,filter_var) for p in list(range(len(list_index_f)))]
+        
+        df_f=pd.concat(ubigeos_des,axis=0)
     
     else:
-        for p in list(range(0,len(list_index_f))):
-            ubigeos_des.append(df.
-                               pipe(extrac_freq_ubigeo,p).
-                               assign(resp=lambda df_:df_.resp.fillna(method='ffill')).
-                               groupby(['ubigeo','resp']).
-                               apply(clean_columns_answers,filter_var)
-                              )
-        df_f=(pd.concat(ubigeos_des,axis=0))
+        ubigeos_des = [(df.pipe(extrac_freq_ubigeo, p).
+                       assign(resp=lambda df_:df_.resp.fillna(method='ffill')).
+                       groupby(['ubigeo','resp']).
+                       apply(clean_columns_answers,filter_var)) for p in list(range(len(list_index_f)))]
+
+        df_f=pd.concat(ubigeos_des,axis=0)
             
     
     if continuous==True:
@@ -214,7 +203,8 @@ def cross_table(df, filter_var=False, pivot=False, continuous=False, kind=None, 
                   set_index(["ubigeo","fila","columna"])
                  )
             df_f["freq"]=(df_f.replace("-","0",regex=True).
-                         astype(int))
+                          replace(r'(?<=\d)\s+(?=\d)', '', regex=True).
+                          astype(int))
 
             if pivot==True:
                 df_f=(df_f.
@@ -226,7 +216,8 @@ def cross_table(df, filter_var=False, pivot=False, continuous=False, kind=None, 
                 df_f
         else:
             df_f=(multi_index(df_f).
-                 assign(freq=lambda df_:df_.freq.replace("-","0",regex=True)).
+                 assign(freq=lambda df_:df_.freq.replace("-","0",regex=True).
+                        replace(r'(?<=\d)\s+(?=\d)', '', regex=True)).
                   astype(int)
                  )
             df_f.index=(df_f.

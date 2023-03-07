@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[11]:
-
-
 """
 MODIFICADO DE cpv2010arg.py en https://github.com/abenassi/pyredatam/blob/1480c481feb0698d54b59c3c17e52661a8c793df/pyredatam/cpv2010arg.py
 """
@@ -22,51 +19,65 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import redapy
 import datetime
-begin_time = datetime.datetime.now()
 
-# area = ["Distrito"]
-# var1 = ["Poblacio.PAREAasdas"]
-# # var2 = ["Poblacio.C5P82"]
-# selection = ["Provinci 1501"]
-# filter_a = "Distrito"
-# ser_url = r'C:\\Users\\Dieguinchi\\Desktop\\chromedriver.exe'
 
 """
 FUNCIONES QUE SCRAPEA RESULTADOS DE CONSULTA REDATAM CENSO 2017 Y LO CONVIERTE EN DATAFRAME
 MODIFICADO DE pyredatam.py en https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
 
-def make_query_2017(query, url, ser_url): # hace consulta "query" a redatam a través de procesador estadístico online
-    print('Scrapeo iniciado')
-    options = webdriver.ChromeOptions()#carga configuración del webdriver
-    options.headless = True
-    ser = Service(ser_url)
-    driver = webdriver.Chrome(options=options, service=ser)# el driver debe estar en archivos del pc. puede descargarse de https://chromedriver.chromium.org/downloads
-    try: driver.get(url) # abre pagina web de redatam
-    except: print('No se pudo abrir páginade REDATAM')
+def make_query_2017(query, url, service_path=None, test=False): # hace consulta "query" a redatam a través de procesador estadístico online
+    begin_time = datetime.datetime.now()
+    print('Scrapeo iniciado')    
+    options = webdriver.ChromeOptions() #carga configuración del webdriver
+    options.add_argument('--headless')
+    
+    ## Se puede establecer la ruta donde se encuentra el service (ChromeDriver) o se puede copiar el .exe en una de las rutas usadas por el notebook.
+    ## Para el caso de google colab es mejor copiar el service en uno de paths del sistema del environment. Estos se pueden ver usando sys.path
+    if service_path!=None:
+        driver = webdriver.Chrome(service=Service(service_path),
+                                  options=options)
+    else:
+        driver=webdriver.Chrome('chromedriver',options=options)
+    
+    try:
+        driver.get(url) # abre pagina web de redatam
+    except:
+        print('No se pudo abrir páginade REDATAM')
+    
     print('Se cargó página REDATAM con éxito')
+    
     query_input = driver.find_element(By.TAG_NAME,"textarea")# ubica linea de comandos
-#     query_input.send_keys(query.decode("utf-8", "ignore"))
+    # query_input.send_keys(query.decode("utf-8", "ignore"))
     query_input.send_keys(query) # escribe consulta en línea de comandos
     submit = driver.find_element(By.NAME,"Submit") #Busca botón "Ejecutar"
     submit.click()# clickea en "Ejecutar" y ejecuta consulta
+    
     try: 
-        WebDriverWait(driver, 3).until(lambda driver: len(driver.find_elements(By.XPATH,"//h2[contains(text(),'500 - Internal server error.')]")) == 1)
+        (WebDriverWait(driver, 3).
+         until(lambda driver: len(driver.find_elements(By.XPATH,"//h2[contains(text(),'500 - Internal server error.')]")) == 1)
+        )
         print('No cargó la tabla. Error 505')
         return ""
     except: 
-        print('Iniciando scrapeo...')
-        WebDriverWait(driver, 999999).until(lambda driver: len(driver.find_elements(By.XPATH,"//*[contains(text(),'Descargar en formato Excel')]")) == 1)#espera 999 segundos o a que se muestren todas las tablas solicitadas, es decir, debe mostrar Descargar en formato Excel la misma cantidad de veces que la cantidad de variables de la solicitud 
+        #espera 250 segundos o a que se muestren todas las tablas solicitadas; es decir,
+        #debe mostrar Descargar en formato Excel la misma cantidad de veces que la cantidad de variables de la solicitud 
+        
+        #print('Iniciando scrapeo...')
+        (WebDriverWait(driver, 250).
+         until(lambda driver: len(driver.find_elements(By.XPATH,"//*[contains(text(),'Descargar en formato Excel')]")) == 1)
+        )
+        
         print('La tabla cargó completamente')
         html = driver.find_element(By.ID,"tab-output")# obtiene unicamente la tabla de resultados
         html = html.get_attribute('outerHTML')# obtiene el html de la tabla de resultados
         driver.close() # cierra navegador
-    try: 
+    try:
         tables = pd.read_html(html) # lee todos los dataframes de la tabla de resultados
-        print('Tabla scrapeada con éxito en:')
         tiempo = datetime.datetime.now() - begin_time
-        print(tiempo)
+        print('Tabla scrapeada con éxito en:',tiempo)
         table_final = pd.concat(tables)
+            
         # if "SELECTION INLINE," in query:
         #     query_temp = query.split() 
         #     table_final['UBIGEO'] = query_temp[5]
@@ -75,7 +86,11 @@ def make_query_2017(query, url, ser_url): # hace consulta "query" a redatam a tr
         #     return table_final
         # else:
         #     return table_final
-        return table_final
+        
+        if test == True:
+            return table_final, tiempo
+        else:
+            return table_final
     except: 
         print('No se logró scrapear la tabla')
         return ""
@@ -84,9 +99,17 @@ def make_query_2017(query, url, ser_url): # hace consulta "query" a redatam a tr
 FUNCIONES QUE GENERAN LINEA DE CÓDIGO EN LENGUAJE REDATAM
 MODIFICADO DE pyredatam.py en https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
-def query_final(tipo=None,var1=None, var2=None,selection=None,area_break=None,
-           universe_filter=None, title=None):
+def query_final(tipo=None,var1=None, var2=None,selection=None,area_break=None,universe_filter=None, title=None):
+    '''
+    tipo: Define el tipo de consulta. Frequency, Crosstab
+    var1: Primera variable
+    var2: Segunda varible, aplica cuando se selecciona el tipo=Crosstab
+    selection: Es el nivel de salida específico de la consulta
+    area_break: Es el nivel general de la consulta. Departamento, provincia, distrito
+    universe_filter:
+    title:
     
+    '''   
     if tipo=="Frequency": # Frequency
         return frequency_query(var1,selection,area_break,universe_filter,title)
     if tipo=="Crosstab": # Crosstab
@@ -172,10 +195,3 @@ def _build_of_variables2(var1,var2):
 # merged.to_excel(Excelwriter)
 # Excelwriter.save()
 # print(datetime.datetime.now() - begin_time)
-
-
-# In[ ]:
-
-
-
-
