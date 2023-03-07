@@ -42,7 +42,7 @@ def clean_data(df):
     df=(df.
         reset_index("columna").
         rename(index=str.strip).
-        query('columna != "ubigeo"', engine='Python').
+        query('columna != "ubigeo"', engine='python').
         rename({0:'freq'},axis=1))
     try:
         df=(df.assign(freq=lambda df_:df_.freq.str.replace(" ","")).
