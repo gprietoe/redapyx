@@ -26,9 +26,17 @@ FUNCIONES QUE SCRAPEA RESULTADOS DE CONSULTA REDATAM CENSO 2017 Y LO CONVIERTE E
 MODIFICADO DE pyredatam.py en https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
 
-def make_query_2017(query, url, service_path=None, test=False): # hace consulta "query" a redatam a través de procesador estadístico online
+def make_query_2017(query, service_path=None, test=False, mensajes=True): # hace consulta "query" a redatam a través de procesador estadístico online
     begin_time = datetime.datetime.now()
-    print('Scrapeo iniciado')    
+    
+    # Selecciona URL de acuerdo al censo seleccionado. Dado que CPV2017_D y CPV2017_M usan el mismo código de scrapeo, solo se añade un IF para que seleccione la URL correcta.
+    
+    if query[1] == 'CPV2017_M':
+        url = 'https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017&ITEM=PROGRED&lang=esp'
+    else: 
+        url = 'https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017DI&ITEM=PROGRED&lang=esp'
+        
+    if mensajes==True: print('Scrapeo iniciado')    
     options = webdriver.ChromeOptions() #carga configuración del webdriver
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
@@ -44,13 +52,13 @@ def make_query_2017(query, url, service_path=None, test=False): # hace consulta 
     try:
         driver.get(url) # abre pagina web de redatam
     except:
-        print('No se pudo abrir páginade REDATAM')
+        if mensajes==True: print('No se pudo abrir páginade REDATAM')
     
-    print('Se cargó página REDATAM con éxito')
+    if mensajes==True: print('Se cargó página REDATAM con éxito')
     
     query_input = driver.find_element(By.TAG_NAME,"textarea")# ubica linea de comandos
     # query_input.send_keys(query.decode("utf-8", "ignore"))
-    query_input.send_keys(query) # escribe consulta en línea de comandos
+    query_input.send_keys(query[0]) # escribe consulta en línea de comandos
     submit = driver.find_element(By.NAME,"Submit") #Busca botón "Ejecutar"
     submit.click()# clickea en "Ejecutar" y ejecuta consulta
     
@@ -58,7 +66,7 @@ def make_query_2017(query, url, service_path=None, test=False): # hace consulta 
         (WebDriverWait(driver, 3).
          until(lambda driver: len(driver.find_elements(By.XPATH,"//h2[contains(text(),'500 - Internal server error.')]")) == 1)
         )
-        print('No cargó la tabla. Error 505')
+        if mensajes==True: print('No cargó la tabla. Error 505')
         return ""
     except: 
         #espera 250 segundos o a que se muestren todas las tablas solicitadas; es decir,
@@ -69,7 +77,7 @@ def make_query_2017(query, url, service_path=None, test=False): # hace consulta 
          until(lambda driver: len(driver.find_elements(By.XPATH,"//*[contains(text(),'Descargar en formato Excel')]")) == 1)
         )
         
-        print('La tabla cargó completamente')
+        if mensajes==True: print('La tabla cargó completamente')
         html = driver.find_element(By.ID,"tab-output")# obtiene unicamente la tabla de resultados
         html = html.get_attribute('outerHTML')# obtiene el html de la tabla de resultados
         driver.close() # cierra navegador
@@ -100,7 +108,7 @@ def make_query_2017(query, url, service_path=None, test=False): # hace consulta 
 FUNCIONES QUE GENERAN LINEA DE CÓDIGO EN LENGUAJE REDATAM
 MODIFICADO DE pyredatam.py en https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
-def query_final(tipo=None,var1=None, var2=None,selection=None,area_break=None,universe_filter=None, title=None):
+def query_final(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None):
     '''
     tipo: Define el tipo de consulta. Frequency, Crosstab
     var1: Primera variable
@@ -110,13 +118,26 @@ def query_final(tipo=None,var1=None, var2=None,selection=None,area_break=None,un
     universe_filter:
     title:
     
-    '''   
+    '''
+    # Modifica valores de la variable area_break o nivel para que sean compatibles con REDATAM 2017 a través de diccionario
+    # if censo = 2017 (Para cuando añadamos make_querys de otros censos. los valores de la categoria area_break pueden variar dependiento del censo)
+    area_break_dict = {'Departamento':['Departam',1],
+                        'Provincia':['Provinci',2],
+                        'Distrito':['Distrito',3],
+                        'Manzana':['Manzana',4],
+                        'Centro Poblado':['Centro Poblado',5]}
+    
+    # Se redefine area_break como lista de un solo valor (ya que asi funciona para la union de caracteres del query) asignandole el primer valor de acuerdo al diccionario que es un STRING
+    # el segundo valor seria númerico (1,2,3,4,5) por si en algun momento queremos utilizarlo de esa manera.
+    area_break = [area_break_dict[area_break[0]][0]]
+    
     if tipo=="Frequency": # Frequency
-        return frequency_query(var1,selection,area_break,universe_filter,title)
+        return frequency_query(var1,selection,area_break,universe_filter,title), censo #Se modifica para que retorne informacion sobre a qué censo se  hará la consulta y asi make_query2017 pueda leerlo
     if tipo=="Crosstab": # Crosstab
-        return crosstab_query(var1,var2,selection,area_break,universe_filter,title)
+        return crosstab_query(var1,var2,selection,area_break,universe_filter,title), censo 
     else:
         return "No seleccionó tipo de consulta"
+    
     
 # funcion para escribir consulta redatam en lenguaje redatam
 def frequency_query(var1,selection,area_break,
