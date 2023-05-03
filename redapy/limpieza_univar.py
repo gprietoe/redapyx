@@ -64,14 +64,14 @@ def analys_cont_var(df, kind, start,interval, pivot, column, values):
         
     elif kind == "descriptivos":
         if len(values)>1: ## if columns are more than 1, if it's true, there are more than 1 variable
-            list_des=[]
-            for p in values:
-                (
-                    list_des.
-                    append(cal_descriptivos(df, values=p, fila=column).
-                           pipe(multi_column_des, values=p)
-                          )
-                )
+            list_des=[cal_descriptivos(df, values=p, fila=column).pipe(multi_column_des, values=p) for p in values]
+            # list_des=[] 
+            # for p in values:
+            #     (list_des.
+            #      append(cal_descriptivos(df, values=p, fila=column).
+            #             pipe(multi_column_des, values=p)
+            #            )
+            #     )
             df_f=pd.concat(list_des,axis=1)
         else:
             df_f=cal_descriptivos(df)
@@ -122,11 +122,27 @@ def frequency(df, pivot=False, continuous=False, kind=None, start=0, interval=No
              )
 
     else:
-        if pivot==True:
-              df_f=(df_f.pivot(index="ubigeo",columns="resp", values="fre").
-              fillna(0))
-        else:
-            return df_f        
+        try:
+            df_f["fre"]=df_f.fre.replace(" ","", regex=True).astype(int)
+            
+            if pivot==True:
+                df_f=(df_f.pivot(index="ubigeo",columns="resp", values="fre").
+                      fillna(0).
+                      astype(int)
+                     )
+            else:
+                return df_f
+        except:
+            print("Existe en el resultado tablas vacias en alguno de los UBIGEOS")
+            
+            if pivot==True:
+                df_f=(df_f.pivot(index="ubigeo",columns="resp", values="fre").
+                      fillna(0).
+                      astype(int)
+                     )
+            else:
+                return df_f
+            return df_f
     
     return df_f
 

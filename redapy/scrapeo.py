@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
 """
 MODIFICADO DE cpv2010arg.py en https://github.com/abenassi/pyredatam/blob/1480c481feb0698d54b59c3c17e52661a8c793df/pyredatam/cpv2010arg.py
 """
@@ -15,6 +14,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+
+from .utiles import set_string_for_query
 
 import time
 import redapy
@@ -119,21 +120,19 @@ def query_final(tipo=None,censo=None,var1=None,var2=None,selection=None,area_bre
     title:
     
     '''
-    # Modifica valores de la variable area_break o nivel para que sean compatibles con REDATAM 2017 a través de diccionario
-    # if censo = 2017 (Para cuando añadamos make_querys de otros censos. los valores de la categoria area_break pueden variar dependiento del censo)
-    area_break_dict = {'Departamento':['Departam',1],
-                        'Provincia':['Provinci',2],
-                        'Distrito':['Distrito',3],
-                        'Manzana':['Manzana',4],
-                        'Centro Poblado':['Centro Poblado',5]}
+    # Modifica valores de la variable area_break para que sean compatibles con REDATAM 2017
+    area_break=set_string_for_query(area_break)
     
-    # Se redefine area_break como lista de un solo valor (ya que asi funciona para la union de caracteres del query) asignandole el primer valor de acuerdo al diccionario que es un STRING
-    # el segundo valor seria númerico (1,2,3,4,5) por si en algun momento queremos utilizarlo de esa manera.
-    area_break = [area_break_dict[area_break[0]][0]]
+    # Modifica valores de la variable selection para que sean compatibles con REDATAM 2017
+    selec_1=selection.split(" ")[0].upper().strip()
+    selec_2=selection.split(" ")[1].upper().strip()
+    selection = [s+" "+selec_2 for s in set_string_for_query(selec_1)]
     
-    if tipo=="Frequency": # Frequency
+    var1=[var1]
+    if tipo=="Frequency": # Frequency    
         return frequency_query(var1,selection,area_break,universe_filter,title), censo #Se modifica para que retorne informacion sobre a qué censo se  hará la consulta y asi make_query2017 pueda leerlo
     if tipo=="Crosstab": # Crosstab
+        var2=[var2]
         return crosstab_query(var1,var2,selection,area_break,universe_filter,title), censo 
     else:
         return "No seleccionó tipo de consulta"
