@@ -56,3 +56,16 @@ def clean_data(df):
         
     return df.set_index([df.index,"columna"])
 
+
+def cleaning_list_ubigeos_des(list_ubi, frequency=False):
+    '''
+    Returns a new list without the tables(df) that do not has any information
+    '''
+    if frequency==True:
+        list_index_to_remove = [i for i, df in enumerate(list_ubi) if pd.isna(df.set_index('resp').index[0])]
+    else:
+        list_index_to_remove = [i for i, df in enumerate(list_ubi) if pd.isna(df.index[0])]
+    
+    list_ubi2 = [df for i, df in enumerate(list_ubi) if i not in list_index_to_remove]  
+    
+    return list_ubi2

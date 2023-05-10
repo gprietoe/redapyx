@@ -65,13 +65,6 @@ def analys_cont_var(df, kind, start,interval, pivot, column, values):
     elif kind == "descriptivos":
         if len(values)>1: ## if columns are more than 1, if it's true, there are more than 1 variable
             list_des=[cal_descriptivos(df, values=p, fila=column).pipe(multi_column_des, values=p) for p in values]
-            # list_des=[] 
-            # for p in values:
-            #     (list_des.
-            #      append(cal_descriptivos(df, values=p, fila=column).
-            #             pipe(multi_column_des, values=p)
-            #            )
-            #     )
             df_f=pd.concat(list_des,axis=1)
         else:
             df_f=cal_descriptivos(df)
@@ -110,7 +103,8 @@ def frequency(df, pivot=False, continuous=False, kind=None, start=0, interval=No
     ubigeo, list_index_f = list_ubigeo_index(df)  ## Lista de ubigeos e indexes
     
     ubigeos_des = [df.pipe(extrac_freq_ubigeo, p) for p in list(range(len(list_index_f)))]
-    df_f=pd.concat(ubigeos_des,axis=0)
+    df_f=pd.concat(cleaning_list_ubigeos_des(ubigeos_des, frequency=True),axis=0)
+    
               
     if continuous==True:
         list_var, df_f=clean_continuous_var(df_f, column='resp')
@@ -184,17 +178,21 @@ def cross_table(df, filter_var=False, pivot=False, continuous=False, kind=None, 
         ubigeos_des = [df.pipe(extrac_freq_ubigeo, p).
                        pipe(clean_columns_answers,filter_var) for p in list(range(len(list_index_f)))]
         
-        df_f=pd.concat(ubigeos_des,axis=0)
+        try:
+            df_f=pd.concat(ubigeos_des,axis=0)
+        except:            
+            df_f=pd.concat(cleaning_list_ubigeos_des(ubigeos_des),axis=0)        
     
     else:
         ubigeos_des = [(df.pipe(extrac_freq_ubigeo, p).
                        assign(resp=lambda df_:df_.resp.fillna(method='ffill')).
                        groupby(['ubigeo','resp']).
                        apply(clean_columns_answers,filter_var)) for p in list(range(len(list_index_f)))]
+        try:
+            df_f=pd.concat(ubigeos_des,axis=0)
+        except:
+            df_f=pd.concat(cleaning_list_ubigeos_des(ubigeos_des),axis=0)
 
-        df_f=pd.concat(ubigeos_des,axis=0)
-            
-    
     if continuous==True:
         list_var, df_f=clean_continuous_var(df_f, column='fila')
         df_f=(df_f.
