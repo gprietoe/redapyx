@@ -15,7 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-from .utiles import set_string_for_query
+from .utiles import *
 
 import time
 import redapy
@@ -109,7 +109,7 @@ def make_query_2017(query, service_path=None, test=False, mensajes=True): # hace
 FUNCIONES QUE GENERAN LINEA DE CÓDIGO EN LENGUAJE REDATAM
 MODIFICADO DE pyredatam.py en https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
-def query_final(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None):
+def query_final(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None):
     '''
     tipo: Define el tipo de consulta. Frequency, Crosstab
     var1: Primera variable
@@ -121,26 +121,24 @@ def query_final(tipo=None,censo=None,var1=None,var2=None,selection=None,area_bre
     
     '''
     # Modifica valores de la variable area_break para que sean compatibles con REDATAM 2017
-    area_break=set_string_for_query(area_break)
+    area_break=set_string_for_query(area_break,param_area=True)
     
     # Modifica valores de la variable selection para que sean compatibles con REDATAM 2017
-    selec_1=selection.split(" ")[0].upper().strip()
-    selec_2=selection.split(" ")[1].upper().strip()
-    selection = [s+" "+selec_2 for s in set_string_for_query(selec_1)]
+    selection=set_string_for_query(selection,param_area=False)
     
-    var1=[var1]
+    var1=[split_clean_append_var(var1)]
     if tipo=="Frequency": # Frequency    
-        return frequency_query(var1,selection,area_break,universe_filter,title), censo #Se modifica para que retorne informacion sobre a qué censo se  hará la consulta y asi make_query2017 pueda leerlo
+        return frequency_query(var1,selection,area_break,universe_filter,title,for_query), censo #Se modifica para que retorne informacion sobre a qué censo se  hará la consulta y asi make_query2017 pueda leerlo
     if tipo=="Crosstab": # Crosstab
-        var2=[var2]
-        return crosstab_query(var1,var2,selection,area_break,universe_filter,title), censo 
+        var2=[split_clean_append_var(var2)]
+        return crosstab_query(var1,var2,selection,area_break,universe_filter,title,for_query), censo 
     else:
         return "No seleccionó tipo de consulta"
     
     
 # funcion para escribir consulta redatam en lenguaje redatam
 def frequency_query(var1,selection,area_break,
-                   universe_filter, title):
+                   universe_filter, title,for_query):
     # RUNDEF section
     lines = _build_rundef_section(selection,universe_filter)
     # TABLE section
@@ -149,11 +147,13 @@ def frequency_query(var1,selection,area_break,
     lines.append("    AS FREQUENCY")
     lines.append(_build_area_break(area_break))
     lines.append(_build_of_variables(var1))
-
+    if for_query!=None:
+        lines.append(_build_of_for(for_query_d=for_query))
+    
     return "\n".join(lines)
 
 def crosstab_query(var1,var2,selection,area_break,
-                   universe_filter,title):
+                   universe_filter,title,for_query):
     # RUNDEF section
     lines = _build_rundef_section(selection,universe_filter)
 
@@ -162,6 +162,8 @@ def crosstab_query(var1,var2,selection,area_break,
     lines.extend(_build_title(title))
     lines.append(_build_of_variables2(var1,var2))
     lines.append(_build_area_break(area_break))
+    if for_query!=None:
+        lines.append(_build_of_for(for_query_d=for_query))
 
     return "\n".join(lines)
 
@@ -203,16 +205,18 @@ def _build_of_variables2(var1,var2):
         var2 = [var2]
     return "    AS CROSSTABS OF {} BY {}".format((", ".join(filter(lambda x: str(x) if x is not None else '',var1))),(", ".join(filter(lambda x: str(x) if x is not None else '',var2)))) if var1 or var2 else ""
 
-# query = query_final(tipo="Frequency",var1=var1,area_break=area)
+# funcion para establecer un query para una variable de la consulta tipo Frecuency
+def _build_of_for(for_query_d):
 
-# BASE_URL = "https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017DI&ITEM=PROGRED&lang=esp"
-# # concatena dataframes de la tabla de resultados en un solo dataframe
-# try: 
-#     merged = pd.concat(make_dataframe(make_query_2017(query,BASE_URL)))
-# except:
-#     print('No se pudo generar Dataframe con resultados')
+    variables_m=str_test(dict_t=for_query_d, var_t="variables")
+    variables_f=[split_clean_append_var(_vars) for _vars in variables_m]
 
-# Excelwriter = pd.ExcelWriter("tablas.xlsx",engine="xlsxwriter") #exporta en excel dataframe final
-# merged.to_excel(Excelwriter)
-# Excelwriter.save()
-# print(datetime.datetime.now() - begin_time)
+    if len(variables_f)>=2:
+        a=[item_p+" "+logic_expression_trans(for_query_d=for_query_d,index_i=index_i)+" "+category_trans(for_query_d=for_query_d, index_i=index_i,variable_f=variables_f)+" "+operator_trans(for_query_d=for_query_d,index_i=index_i) for index_i, item_p in enumerate(variables_f)]
+        line_final=("    FOR {}".format(", ".join(filter(lambda x: str(x) if x is not None else '', a))) if a else "").replace(",","")[0:-3]
+    else:
+        a=[item_p+" "+logic_expression_trans(for_query_d=for_query_d,index_i=index_i)+" "+category_trans(for_query_d=for_query_d, index_i=index_i,variable_f=variables_f) for index_i, item_p in enumerate(variables_f)]
+        line_final=("    FOR {}".format(", ".join(filter(lambda x: str(x) if x is not None else '', a))) if a else "")
+
+    return line_final
+    
