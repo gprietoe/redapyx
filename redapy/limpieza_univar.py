@@ -116,6 +116,7 @@ def frequency(df, pivot=False, continuous=False, kind=None, start=0, interval=No
              )
 
     else:
+        
         try:
             df_f["fre"]=df_f.fre.replace(" ","", regex=True).astype(int)
             
