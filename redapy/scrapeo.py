@@ -27,6 +27,17 @@ FUNCIONES QUE SCRAPEA RESULTADOS DE CONSULTA REDATAM CENSO 2017 Y LO CONVIERTE E
 MODIFICADO DE pyredatam.py en https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
 
+def query_2017(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, service_path=None, test=False, mensajes=True, print_query=False): # hace consulta "query" a redatam a través de procesador estadístico online
+    
+    query0=query_final(tipo=tipo,censo=censo,var1=var1,var2=var2,selection=selection,area_break=area_break,universe_filter=universe_filter, title=title, for_query=for_query)
+    if print_query==True:
+        print(query0[0])
+        query1=make_query_2017(query0, service_path=service_path, test=test, mensajes=mensajes)
+    else:
+        query1=make_query_2017(query0, service_path=service_path, test=test, mensajes=mensajes)
+    
+    return query1
+    
 def make_query_2017(query, service_path=None, test=False, mensajes=True): # hace consulta "query" a redatam a través de procesador estadístico online
     begin_time = datetime.datetime.now()
     
