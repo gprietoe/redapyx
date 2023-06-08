@@ -28,6 +28,15 @@ MODIFICADO DE pyredatam.py en https://github.com/abenassi/pyredatam/blob/master/
 """
 
 def query_2017(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, service_path=None, test=False, mensajes=True, print_query=False): # hace consulta "query" a redatam a través de procesador estadístico online
+    '''
+    tipo: Define el tipo de consulta. Frequency, Crosstab
+    var1: Primera variable
+    var2: Segunda varible, aplica cuando se selecciona el tipo=Crosstab
+    selection: Es el nivel de salida específico de la consulta
+    area_break: Es el nivel general de la consulta. Departamento, provincia, distrito
+    universe_filter: ??
+    title:
+    '''  
     
     query0=query_final(tipo=tipo,censo=censo,var1=var1,var2=var2,selection=selection,area_break=area_break,universe_filter=universe_filter, title=title, for_query=for_query)
     if print_query==True:
