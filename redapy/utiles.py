@@ -1,4 +1,5 @@
-
+import numpy as np
+import pandas as pd
 
 # Se redefine el string de la varible como lista de un solo valor (ya que asi funciona para la union de caracteres del query) asignandole el primer valor de acuerdo al diccionario que es un STRING
 # el segundo valor seria númerico (1,2,3,4,5) por si en algun momento queremos utilizarlo de esa manera.
@@ -8,7 +9,7 @@ def set_string_for_query(string_name, param_area=False):
                        'PROVINCIA':['Provinci',2,4],
                        'DISTRITO':['Distrito',3,6],
                        'MANZANA':['Manzana',4,None],
-                       'CENTRO POBLADO':['Centro Poblado',5,None]}
+                       'CENTRO POBLADO':['Cenpob',5,None]}
     
     if param_area==True:
         string_res=[string_name_dic[[string_name.upper().strip()][0]][0]]
@@ -84,3 +85,37 @@ def category_trans(for_query_d, index_i, variable_f):
         cat_ex=print("error, el número de variables y la categorías no son iguales")
     
     return cat_ex
+
+
+def clean_directorio_ccpp(path, nacional=False):
+    '''
+    Returns a Dataframe with data from all settlements according with the "Directorio Nacional de Centros Poblados 2017". The information is available on https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib1541/index.htm
+    '''
+    col_names1 = ['codigo', 'ccpp_nombre', 'region_natural', 'altitud', 'pob_censada', 'hob_censados', 'muj_censados', 'viv_particulares', 'viv_ocupadas', 'viv_des']
+    if nacional==True:
+        path_html='/'.join(path.split('/')[0:9])
+        dep1=list(range(1,10))
+        dep2=list(range(10,26))
+        dep2.remove(15)
+        dep3=['15a', '15b']
+        list1=[pd.read_excel(path_html+"/dpto0"+str(dep)+".xlsx", skiprows=2, dtype={'CÓDIGO': str}, names=col_names1) for dep in dep1]
+        list2=[pd.read_excel(path_html+"/dpto"+str(dep)+".xlsx", skiprows=2, dtype={'CÓDIGO': str}, names=col_names1) for dep in dep2]
+        list3=[pd.read_excel(path_html+"/dpto"+dep+".xlsx", skiprows=2, dtype={'CÓDIGO': str}, names=col_names1) for dep in dep3]
+        
+        df=pd.concat((list1+list2+list3), axis=0)
+    else:
+        df = pd.read_excel(path, skiprows=2, dtype={'CÓDIGO': str}, names=col_names1)
+     
+    df['altitud'] = np.where(df['codigo'].str.len() == 6, '0', df['altitud'])
+    df = df.dropna(subset=['codigo', 'altitud']).copy()
+
+    numeric_columns = ['altitud', 'pob_censada', 'hob_censados', 'muj_censados', 'viv_particulares', 'viv_ocupadas', 'viv_des']
+    df[numeric_columns] = df[numeric_columns].replace([' ', '-'], ['', '0'], regex=True).astype(int)
+
+    df['ubigeo'] = np.where(df['codigo'].str.len() == 6, df['codigo'], np.nan)
+    df['ubigeo'] = df['ubigeo'].fillna(method='ffill')
+    df = df.query('codigo.str.len() == 4 & ubigeo.notna()', engine='python').copy()
+    df['ubigeo']=df.ubigeo+df.codigo
+    df=df.set_index('ubigeo')
+    
+    return df

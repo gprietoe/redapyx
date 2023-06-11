@@ -144,7 +144,8 @@ def query_final(tipo=None,censo=None,var1=None,var2=None,selection=None,area_bre
     area_break=set_string_for_query(area_break,param_area=True)
     
     # Modifica valores de la variable selection para que sean compatibles con REDATAM 2017
-    selection=set_string_for_query(selection,param_area=False)
+    if selection!=None:
+        selection=set_string_for_query(selection,param_area=False)
     
     var1=[split_clean_append_var(var1)]
     if tipo=="Frequency": # Frequency    
