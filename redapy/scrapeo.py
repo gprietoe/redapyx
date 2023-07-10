@@ -8,26 +8,27 @@ import pandas as pd
 import numpy as np
 import os
 import warnings
+import time
+import datetime
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-
-from .utiles import *
-
-import time
 import redapy
-import datetime
+from .utiles import *
+from .limpieza_univar import *
 
 
 """
 FUNCIONES QUE SCRAPEA RESULTADOS DE CONSULTA REDATAM CENSO 2017 Y LO CONVIERTE EN DATAFRAME
 MODIFICADO DE pyredatam.py en https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
+def customshowwarning(message, category=None, filename=None, lineno=None, file=None, line=None):
+    print(" ", message)
 
-def query_2017(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, service_path=None, test=False, mensajes=True, print_query=False): # hace consulta "query" a redatam a través de procesador estadístico online
+def get(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, service_path=None, test=False, mensajes=True, print_query=False, pivot=False): # hace consulta "query" a redatam a través de procesador estadístico online
     '''
     tipo: Define el tipo de consulta. Frequency, Crosstab
     var1: Primera variable
@@ -37,19 +38,18 @@ def query_2017(tipo=None,censo=None,var1=None,var2=None,selection=None,area_brea
     universe_filter: ??
     title:
     '''  
-    
-    query0=query_final(tipo=tipo,censo=censo,var1=var1,var2=var2,selection=selection,area_break=area_break,universe_filter=universe_filter, title=title, for_query=for_query)
+    query0=build_query(tipo=tipo,censo=censo,var1=var1,var2=var2,selection=selection,area_break=area_break,universe_filter=universe_filter, title=title, for_query=for_query)
     if print_query==True:
         print(query0[0])
-        query1=make_query_2017(query0, service_path=service_path, test=test, mensajes=mensajes)
+        query1=make_query(query0, service_path=service_path, tipo=tipo, pivot=pivot, test=test, mensajes=mensajes)
     else:
-        query1=make_query_2017(query0, service_path=service_path, test=test, mensajes=mensajes)
+        query1=make_query(query0, service_path=service_path, tipo=tipo, pivot=pivot, test=test, mensajes=mensajes)
     
     return query1
     
-def make_query_2017(query, service_path=None, test=False, mensajes=True): # hace consulta "query" a redatam a través de procesador estadístico online
+def make_query(query, service_path=None, tipo=None, pivot=False, test=False, mensajes=True): # hace consulta "query" a redatam a través de procesador estadístico online
     begin_time = datetime.datetime.now()
-    
+
     # Selecciona URL de acuerdo al censo seleccionado. Dado que CPV2017_D y CPV2017_M usan el mismo código de scrapeo, solo se añade un IF para que seleccione la URL correcta.
     
     if query[1] == 'CPV2017_M':
@@ -57,7 +57,7 @@ def make_query_2017(query, service_path=None, test=False, mensajes=True): # hace
     else: 
         url = 'https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017DI&ITEM=PROGRED&lang=esp'
         
-    if mensajes==True: print('Scrapeo iniciado')    
+    if mensajes==True: warnings.showwarning = customshowwarning(message='Scrapeo iniciado')  
     options = webdriver.ChromeOptions() #carga configuración del webdriver
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
@@ -73,9 +73,9 @@ def make_query_2017(query, service_path=None, test=False, mensajes=True): # hace
     try:
         driver.get(url) # abre pagina web de redatam
     except:
-        if mensajes==True: print('No se pudo abrir páginade REDATAM')
+        if mensajes==True: warnings.showwarning = customshowwarning(message='No se pudo abrir página de REDATAM')
     
-    if mensajes==True: print('Se cargó página REDATAM con éxito')
+    if mensajes==True: warnings.showwarning = customshowwarning(message='Se cargó página REDATAM con éxito')
     
     query_input = driver.find_element(By.TAG_NAME,"textarea")# ubica linea de comandos
     # query_input.send_keys(query.decode("utf-8", "ignore"))
@@ -87,7 +87,7 @@ def make_query_2017(query, service_path=None, test=False, mensajes=True): # hace
         (WebDriverWait(driver, 3).
          until(lambda driver: len(driver.find_elements(By.XPATH,"//h2[contains(text(),'500 - Internal server error.')]")) == 1)
         )
-        if mensajes==True: print('No cargó la tabla. Error 505')
+        if mensajes==True: warnings.showwarning = customshowwarning(message='No cargó la tabla. Error 505. Revisar datos ingresados.')
         return ""
     except: 
         #espera 250 segundos o a que se muestren todas las tablas solicitadas; es decir,
@@ -98,16 +98,24 @@ def make_query_2017(query, service_path=None, test=False, mensajes=True): # hace
          until(lambda driver: len(driver.find_elements(By.XPATH,"//*[contains(text(),'Descargar en formato Excel')]")) == 1)
         )
         
-        if mensajes==True: print('La tabla cargó completamente')
+        if mensajes==True: warnings.showwarning = customshowwarning(message='La tabla cargó completamente')
         html = driver.find_element(By.ID,"tab-output")# obtiene unicamente la tabla de resultados
         html = html.get_attribute('outerHTML')# obtiene el html de la tabla de resultados
         driver.close() # cierra navegador
     try:
         tables = pd.read_html(html) # lee todos los dataframes de la tabla de resultados
         tiempo = datetime.datetime.now() - begin_time
-        print('Tabla scrapeada con éxito en:',tiempo)
+        message='Tabla scrapeada con éxito en: '+ str(tiempo)
+        warnings.showwarning = customshowwarning(message=message)
         table_final = pd.concat(tables)
-            
+        try:
+            table_final = redapy.frequency(table_final,pivot=pivot) if tipo=='Frequency' else redapy.cross_table(table_final,pivot=pivot) if tipo=='Crosstab' else table_final
+            begin_time = datetime.datetime.now()
+            tiempo = datetime.datetime.now() - begin_time
+            message='Tabla procesada con éxito en: '+ str(tiempo)
+            warnings.showwarning = customshowwarning(message=message)
+        except: 
+            warnings.showwarning = customshowwarning(message='Error procesando la tabla')    
         # if "SELECTION INLINE," in query:
         #     query_temp = query.split() 
         #     table_final['UBIGEO'] = query_temp[5]
@@ -116,20 +124,19 @@ def make_query_2017(query, service_path=None, test=False, mensajes=True): # hace
         #     return table_final
         # else:
         #     return table_final
-        
         if test == True:
             return table_final, tiempo
         else:
             return table_final
     except: 
-        print('No se logró scrapear la tabla')
+        warnings.showwarning = customshowwarning(message='No se logró scrapear la tabla')
         return ""
 
 """
 FUNCIONES QUE GENERAN LINEA DE CÓDIGO EN LENGUAJE REDATAM
 MODIFICADO DE pyredatam.py en https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
-def query_final(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None):
+def build_query(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None):
     '''
     tipo: Define el tipo de consulta. Frequency, Crosstab
     var1: Primera variable
@@ -154,6 +161,7 @@ def query_final(tipo=None,censo=None,var1=None,var2=None,selection=None,area_bre
         var2=[split_clean_append_var(var2)]
         return crosstab_query(var1,var2,selection,area_break,universe_filter,title,for_query), censo 
     else:
+        warnings.showwarning = customshowwarning(message='No seleccionó tipo de consulta')
         return "No seleccionó tipo de consulta"
     
     
