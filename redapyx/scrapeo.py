@@ -16,9 +16,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-import redapyx
+
 from .utiles import *
-from .limpieza_univar import *
+from .limpieza_univar import frequency, cross_table
 
 """
 SCRAPING FUNCTIONS THAT GET REDATAM OUTPUT AND CONVERT IT IN PANDAS DATAFRAME
@@ -27,62 +27,71 @@ SCRAPING FUNCTIONS THAT GET REDATAM OUTPUT AND CONVERT IT IN PANDAS DATAFRAME
 def customshowwarning(message, category=None, filename=None, lineno=None, file=None, line=None):
     print(" ", message)
 
-def get(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, service_path=None, test=False, mensajes=True, print_query=False, pivot=False, output=None, factor_exp=None): # makes query to redatam and extract data
+def get(tipo=None,censo=None, var1=None,var2=None, selection=None,area_break=None, universe_filter=None, title=None, for_query=None, factor_exp=None,
+        service_path=None, test=False, mensajes=True, print_query=False, pivot=False, output=None): # makes query to redatam and extract data
     '''
-    tipo: Define the type of query (Frequency or Crosstab)
+    tipo: Define the type of query (frequency or crosstab)
     censo: Define census database
     var1: Define first variable
-    var2: Define second varible, just aplies when Crosstab type of query is selected
+    var2: Define second varible, just aplies when crosstab type of query is selected
     selection: Filters and select data from specific geographic location (it can be one or multiple UBIGEO codes)
     area_break: Define level of data output (departamento, provincia, distrito)
     ...
     pivot:
-    output:
+    output: to use the option shp, geopandas's library is required 
     factor_exp:
-    '''  
-    query0=build_query(tipo=tipo,censo=censo,var1=var1,var2=var2,selection=selection,area_break=area_break,universe_filter=universe_filter, title=title, for_query=for_query, factor_exp=factor_exp)
+    '''
+    # selects census databases. not properly implemented yet
+    censo="2017"
+    if (censo=="2017") & (area_break in ["departamento","provincia","distrito"]):
+        url = "https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017DI&ITEM=PROGRED&lang=esp"
+    else: 
+        url = "https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017&ITEM=PROGRED&lang=esp"
+    
+    query0=build_query(tipo=tipo, censo=censo, var1=var1, var2=var2,
+                       selection=selection, area_break=area_break,universe_filter=universe_filter, title=title,
+                       for_query=for_query, factor_exp=factor_exp)
+    
     if print_query==True:
         print(query0[0])
-        query1=make_query(query0, service_path=service_path, tipo=tipo, pivot=pivot, test=test, mensajes=mensajes, output=output, factor_exp=factor_exp)
+        query1=make_query(query0, service_path=service_path, service_url=url, tipo=tipo, pivot=pivot, test=test, mensajes=mensajes)
     else:
-        query1=make_query(query0, service_path=service_path, tipo=tipo, pivot=pivot, test=test, mensajes=mensajes, output=output, factor_exp=factor_exp)
+        query1=make_query(query0, service_path=service_path, service_url=url, tipo=tipo, pivot=pivot, test=test, mensajes=mensajes)
+
+    if output=="excel":
+        redapyx_excel(query1,var1,var2,factor_exp)
+    else:
+        return query1
+    ## export the dataframe (table or layer)
     
-    try: 
-        redapyx_excel(query1,var1,var2,factor_exp) if output=='Excel' else query1
-    except:
-        warnings.showwarning = customshowwarning(message='Error generating Excel o Shape file')
+    # try:
+    #     redapyx_excel(query1,var1,var2,factor_exp) if output=='Excel' else return query1
+    # except:
+    #     warnings.showwarning = customshowwarning(message='Error generating Excel o Shape file')
         
-def make_query(query, censo='CPV2017_D', service_path=None, tipo=None, pivot=False, test=False, mensajes=True, output=None, factor_exp=None): # scraping function that makes query to redatam server
+def make_query(query, service_path=None, service_url=None, tipo=None, pivot=False, test=False, mensajes=True): # scraping function that makes query to redatam server
     begin_time = datetime.datetime.now()
 
-    # selects census databases. not properly implemented yet
-    if censo == 'CPV2017_D':
-        url = 'https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017DI&ITEM=PROGRED&lang=esp'
-    else: 
-        url = 'https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017&ITEM=PROGRED&lang=esp'
-
     if mensajes==True: warnings.showwarning = customshowwarning(message='Scraping starts')  
+    
     options = webdriver.ChromeOptions() #carga configuración del webdriver
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
+    options.add_argument("--disable-blink-features=AutomationControlled")
     
-    ## Se puede establecer la ruta donde se encuentra el service (ChromeDriver) o se puede copiar el .exe en una de las rutas usadas por el notebook.
-    ## Para el caso de google colab es mejor copiar el service en uno de paths del sistema del environment. Estos se pueden ver usando sys.path
     if service_path!=None:
-        driver = webdriver.Chrome(service=Service(service_path),
-                                  options=options)
+        driver = webdriver.Chrome(service=Service(service_path), options=options)
     else:
-        driver=webdriver.Chrome('chromedriver',options=options)
+        driver=webdriver.Chrome(options=options) ## actualizado con selinum 4.10
     
     try:
-        driver.get(url) # open redatam webpage
+        driver.get(service_url) # open redatam webpage
     except:
-        if mensajes==True: warnings.showwarning = customshowwarning(message='Cant open REDATAM webpage')
+        if mensajes==True: warnings.showwarning = customshowwarning(message="Can't open REDATAM webpage")
     
     if mensajes==True: warnings.showwarning = customshowwarning(message='REDATAM webpage opened successfully')
     
     query_input = driver.find_element(By.TAG_NAME,"textarea")# find redatam command prompt 
-    # query_input.send_keys(query.decode("utf-8", "ignore"))
     query_input.send_keys(query[0]) # write query in redatam command prompt
     submit = driver.find_element(By.NAME,"Submit") # find "Execute" button
     submit.click()# click "Execute" button
@@ -91,11 +100,11 @@ def make_query(query, censo='CPV2017_D', service_path=None, tipo=None, pivot=Fal
         (WebDriverWait(driver, 3).
          until(lambda driver: len(driver.find_elements(By.XPATH,"//h2[contains(text(),'500 - Internal server error.')]")) == 1)
         )
-        if mensajes==True: warnings.showwarning = customshowwarning(message='Cant load tables. Webpage Error 505. Check input data.')
+        if mensajes==True: warnings.showwarning = customshowwarning(message="Can't load tables. Webpage Error 505. Check input data.")
         return ""
     except: 
         # wait 250 seconds or time need to show all requested data until 'Descargar en formato Excel' text renders;        
-        (WebDriverWait(driver, 250).
+        (WebDriverWait(driver, 300).
          until(lambda driver: len(driver.find_elements(By.XPATH,"//*[contains(text(),'Descargar en formato Excel')]")) == 1)
         )
         
@@ -110,21 +119,15 @@ def make_query(query, censo='CPV2017_D', service_path=None, tipo=None, pivot=Fal
         warnings.showwarning = customshowwarning(message=message)
         table_final = pd.concat(tables) # concatenate all dataframes in one dataframe
         try:
-            table_final = redapyx.frequency(table_final,pivot=pivot) if tipo=='Frequency' else redapyx.cross_table(table_final,pivot=pivot) if tipo=='Crosstab' else table_final # clean all dataframes, calls frequency if query was frequency type or crosstab if query was crosstab type
-            begin_time = datetime.datetime.now()
+            #cleaning all dataframes
+            #it calls frequency if query is a frequency type or crosstab if query is a crosstab type
+            begin_time = datetime.datetime.now()         
+            table_final = frequency(table_final,pivot=pivot) if tipo=='frequency' else cross_table(table_final,pivot=pivot) if tipo=='crosstab' else table_final 
             tiempo = datetime.datetime.now() - begin_time
             message='Table was cleaned successfully in: '+ str(tiempo)
             warnings.showwarning = customshowwarning(message=message)
         except: 
             warnings.showwarning = customshowwarning(message='Error cleaning tables')    
-        # if "SELECTION INLINE," in query:
-        #     query_temp = query.split() 
-        #     table_final['UBIGEO'] = query_temp[5]
-        #     col = table_final.pop("UBIGEO")
-        #     table_final.insert(0, col.name, col)
-        #     return table_final
-        # else:
-        #     return table_final
         if test == True:
             return table_final, tiempo
         else:
@@ -137,11 +140,11 @@ def make_query(query, censo='CPV2017_D', service_path=None, tipo=None, pivot=Fal
 FUNCTIONS THAT GENERATE QUERY TEXT FOR REDATAM COMMAND PROMPT 
 MODIFIED VERSION OF pyredatam.py CHECK https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
-def build_query(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, factor_exp=None):
+def build_query(tipo=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, factor_exp=False):
     '''
-    tipo: Define el tipo de consulta. Frequency, Crosstab
+    tipo: Define el tipo de consulta. frequency, crosstab
     var1: Primera variable
-    var2: Segunda varible, aplica cuando se selecciona el tipo=Crosstab
+    var2: Segunda varible, aplica cuando se selecciona el tipo=crosstab
     selection: Es el nivel de salida específico de la consulta
     area_break: Es el nivel general de la consulta. Departamento, provincia, distrito
     universe_filter:
@@ -156,11 +159,11 @@ def build_query(tipo=None,censo=None,var1=None,var2=None,selection=None,area_bre
         selection=set_string_for_query(selection,param_area=False)
     
     var1=[split_clean_append_var(var1)]
-    if tipo=="Frequency": # Frequency    
+    if tipo=="frequency": # frequency    
         return frequency_query(var1,selection,area_break,universe_filter,title,for_query,factor_exp), censo
-    if tipo=="Crosstab": # Crosstab
+    if tipo=="crosstab": # crosstab
         var2=[split_clean_append_var(var2)]
-        return crosstab_query(var1,var2,selection,area_break,universe_filter,title,for_query,factor_exp), censo 
+        return crosstab_query(var1,var2,selection,area_break,universe_filter,title,for_query,factor_exp), censo
     else:
         warnings.showwarning = customshowwarning(message='No seleccionó tipo de consulta')
         return "No seleccionó tipo de consulta"
@@ -180,8 +183,8 @@ def frequency_query(var1,selection,area_break,
     lines.append(_build_of_variables(var1))
     if for_query!=None:
         lines.append(_build_of_for(for_query_d=for_query))
-    if factor_exp!=None:
-        lines.append("    WEIGHT "+factor_exp)
+    if factor_exp==True:
+        lines.append("    WEIGHT "+"Poblacio.FACTORPOND")
     return "\n".join(lines)
 
 def crosstab_query(var1,var2,selection,area_break,
@@ -196,8 +199,8 @@ def crosstab_query(var1,var2,selection,area_break,
     lines.append(_build_area_break(area_break))
     if for_query!=None:
         lines.append(_build_of_for(for_query_d=for_query))
-    if factor_exp!=None:
-        lines.append("    WEIGHT "+factor_exp)
+    if factor_exp==True:
+        lines.append("    WEIGHT "+"Poblacio.FACTORPOND")
     return "\n".join(lines)
 
 def _build_rundef_section(selection=None, universe_filter=None):
