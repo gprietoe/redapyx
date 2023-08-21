@@ -119,3 +119,33 @@ def clean_directorio_ccpp(path, nacional=False):
     df=df.set_index('ubigeo')
     
     return df
+
+"""
+FUNCTIONS THAT GENERATE OUTPUT FORMATS
+"""
+# def def_file_name(var1=None, var2=None, format_t=None):
+#     if var2 is not None:
+#             name = f"TABLA_{var1}_{var2}"
+#     else:
+#             name = f"TABLA_{var1}"
+#     if factor_exp is not None:
+#             name += f"_PONDERADO.{format_t}"
+#     else:
+#             name += f".{format_t}"
+#     return name
+    
+# def redapyx_export():
+#     if output=="dataframe":
+#         name_file=def_file_name(var1=var1, var2=var2, format_t="xlsx")
+#         df.to_excel(name)
+#     else:
+#         name_file=def_file_name(var1=var1, var2=var2, format_t="gpkg")
+#         gdf.to_file(name)
+#     return 
+
+
+        
+            
+
+            
+        
