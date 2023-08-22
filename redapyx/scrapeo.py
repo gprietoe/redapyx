@@ -27,23 +27,35 @@ from .spatial_integration import redapyx_output
 SCRAPING FUNCTIONS THAT GET REDATAM OUTPUT AND CONVERT IT IN PANDAS DATAFRAME
 """
 
-
 # def customshowwarning(message, category=None, filename=None, lineno=None, file=None, line=None):
 #     print(" ", str(message))
 
-def get(type=None,censo=None, var1=None,var2=None, selection=None,area_break=None, universe_filter=None, title=None, for_query=None, factor_exp=False,
-        service_path=None, test=False, output_info=True, print_query=False, pivot=False, output=None,path_file=None, export=True):
+def get(table_type=None,censo=None, var1=None,var2=None, selection=None,area_break=None, universe_filter=None, title=None, for_query=None, factor_exp=False,
+        service_path=None, test=False, output_info=True, print_query=False, pivot=False, output=None,path_file=None):
     '''
-    type: Define the type of query (frequency or crosstab)
-    censo: Define census database
-    var1: Define first variable
-    var2: Define second varible, just aplies when crosstab type of query is selected
-    selection: Filters and select data from specific geographic location (it can be one or multiple UBIGEO codes)
-    area_break: Define level of data output (departamento, provincia, distrito)
-    ...
-    pivot:
-    output: to use the option shp, geopandas's library is required 
-    factor_exp:
+    Parameters
+    ----------
+    table_type: Define the type of query (frequency or crosstab).
+    censo: Define census database -  for future versions.
+    var1: Define the first variable. 
+    var2: Define the second variable; only applies when the crosstab type of query is selected.
+    selection: Filters and selects data from specific geographic locations using INEI's ubigeo.
+    area_break: Define the level of data output (departamento, provincia, distrito).
+    universe_filter: Define specific filters for the data universe being queried.
+    title: Define the title for the query.
+    for_query: Define additional parameters for the query.
+    factor_exp: Boolean, if True, applies a specific factor created by INEI to the query; otherwise False.
+    service_path: Define the path for the service to be called. After selenium 4.10 it's not longer needed because it uses SeleniumManager to deal with the right driver's version.
+    test: Boolean, if True, runs the query in test mode; otherwise False.
+    output_info: Boolean, if True, provides additional information in the output; otherwise False.
+    print_query: Boolean, if True, prints the query; otherwise False.
+    pivot: Boolean, if True, applies a pivot to the query; otherwise False.
+    output: Define the output type; to use the option "geodata" the geopandas library is required.
+    path_file: Define the path where the geodata is stored. If None, the spatial data is downloaded from INEI webpage.
+    
+
+    Returns:
+    Returns a dataframe containing data from Redatam. If output is "geodata", a geodataframe containing the result is returned
     '''
     # selects census databases. not properly implemented yet
     censo="2017"
@@ -52,15 +64,15 @@ def get(type=None,censo=None, var1=None,var2=None, selection=None,area_break=Non
     else: 
         url = "https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017&ITEM=PROGRED&lang=esp"
     
-    query0=build_query(type=type, censo=censo, var1=var1, var2=var2,
+    query0=build_query(table_type=table_type, censo=censo, var1=var1, var2=var2,
                        selection=selection, area_break=area_break,universe_filter=universe_filter, title=title,
                        for_query=for_query, factor_exp=factor_exp)
     
     if print_query==True:
         print(query0[0])
-        query1=make_query(query0, service_path=service_path, service_url=url, type=type, pivot=pivot, test=test, output_info=output_info)
+        query1=make_query(query0, service_path=service_path, service_url=url, table_type=table_type, pivot=pivot, test=test, output_info=output_info)
     else:
-        query1=make_query(query0, service_path=service_path, service_url=url, type=type, pivot=pivot, test=test, output_info=output_info)
+        query1=make_query(query0, service_path=service_path, service_url=url, table_type=table_type, pivot=pivot, test=test, output_info=output_info)
 
     if output=="geodata":
         
@@ -69,14 +81,8 @@ def get(type=None,censo=None, var1=None,var2=None, selection=None,area_break=Non
 
     else:
         return query1
-    
-    ## export the dataframe (table or layer)
-    # try:
-    #     redapyx_excel(query1,var1,var2,factor_exp) if output=='Excel' else return query1
-    # except:
-    #     warnings.showwarning = customshowwarning(message='Error generating Excel o Shape file')
         
-def make_query(query, service_path=None, service_url=None, type=None, pivot=False, test=False, output_info=True): # scraping function that makes query to redatam server
+def make_query(query, service_path=None, service_url=None, table_type=None, pivot=False, test=False, output_info=True): # scraping function that makes query to redatam server
     begin_time = datetime.datetime.now()
 
     if output_info==True:  print('Scraping starts')#warnings.showwarning = customshowwarning(message='Scraping starts')  
@@ -130,7 +136,7 @@ def make_query(query, service_path=None, service_url=None, type=None, pivot=Fals
             #cleaning all dataframes
             #it calls frequency if query is a frequency type or crosstab if query is a crosstab type
             begin_time = datetime.datetime.now()         
-            table_final = frequency(table_final,pivot=pivot) if type=='frequency' else cross_table(table_final,pivot=pivot) if type=='crosstab' else table_final 
+            table_final = frequency(table_final,pivot=pivot) if table_type=='frequency' else cross_table(table_final,pivot=pivot) if table_type=='crosstab' else table_final 
             tiempo = datetime.datetime.now() - begin_time
             message='Table was cleaned successfully in: '+ str(tiempo)
             print(message)
@@ -149,16 +155,8 @@ def make_query(query, service_path=None, service_url=None, type=None, pivot=Fals
 FUNCTIONS THAT GENERATE QUERY TEXT FOR REDATAM COMMAND PROMPT 
 MODIFIED VERSION OF pyredatam.py CHECK https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
-def build_query(type=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, factor_exp=None):
-    '''
-    type: Define el type de consulta. frequency, crosstab
-    var1: Primera variable
-    var2: Segunda varible, aplica cuando se selecciona el type=crosstab
-    selection: Es el nivel de salida específico de la consulta
-    area_break: Es el nivel general de la consulta. Departamento, provincia, distrito
-    universe_filter:
-    title:
-    
+def build_query(table_type=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, factor_exp=None):
+    '''    
     '''
     # modify values from area_break argument so they can be compatible with REDATAM 2017
     area_break=set_string_for_query(area_break,param_area=True)
@@ -168,9 +166,9 @@ def build_query(type=None,censo=None,var1=None,var2=None,selection=None,area_bre
         selection=set_string_for_query(selection,param_area=False)
     
     var1=[split_clean_append_var(var1)]
-    if type=="frequency": # frequency    
+    if table_type=="frequency": # frequency    
         return frequency_query(var1,selection,area_break,universe_filter,title,for_query,factor_exp), censo
-    if type=="crosstab": # crosstab
+    if table_type=="crosstab": # crosstab
         var2=[split_clean_append_var(var2)]
         return crosstab_query(var1,var2,selection,area_break,universe_filter,title,for_query,factor_exp), censo
     else:

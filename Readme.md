@@ -21,23 +21,23 @@ Redapy es parte de un proyecto mayor cuyo objeto es crear un biblioteca de módu
 ## Quickstart
 
 #### Limpieza de datos
-Redapy permite limpiar los resultados de las consultas realizadas en Redatam de forma sencilla.
+Con redapyx es posible automatizar pedidos de datos utilizando el **Procesador estadístico en Linea** de la plataforma de Redatam.
 
 ```python
 import pandas as pd
-import redapy
+import redapyx
 
-# Abrimos el excel descargado de nuestra consulta en la plataforma de Redatam
-df=pd.read_excel("Servicio de agua de la vivienda_2017.xlsx")
-redapy.frequency(df, pivot=True).head(3)
-'''        
-        CAMION CISTERNA  EMPRESA PRESTADORA  MUNICIPALIDAD  ORGANIZACION  VECINO
-        (PAGO DIRECTO)	 DE SERVICIOS                       COMUNAL	
-ubigeo					
-0101	49	             6505                1348           3148          13
-0102	59	             5765                1747           6057          14
-0103	0	             0                   3767           1892          5
-'''
+redapyx.get(table_type='frequency',var1="vivienda.C2P13",area_break="distrito", selection="1501")
+
+| Index | resp | fre | ubigeo |
+|-------|--------------|--------------|--------------|
+| 0     | Alquilada    | 26985        | 150101       |
+| 1     | Propia sin título de propiedad | 10045       | 150101       |
+| 2     | Propia con título de propiedad | 31809       | 150101       |
+| ...   | Cedida	   | 5326         | 150101       |
+| ...   | ...	       | ...          | ...          |
+| 516   | Otra forma   | 107          | 150143       |
+
 ```
 #### Tabla cruzada
 ```python
@@ -62,33 +62,7 @@ ubigeo
 ## Advace users
 
 #### Scrapping
-Con redapy es posible automatizar pedidos de datos utilizando el **Procesador estadístico en Linea** de la plataforma de Redatam.
-Para ello es necesario utilizar la librería Selenium y tener instalado el drive de tu navegador.
 
-#### Query a Tabla cruzada
-```python
-import redapy
-
-# Definimos las rutas
-URL = "https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017&ITEM=PROGRED&lang=esp"
-ser_url = r'C:\\Users\\Guillermo\\Desktop\\chromedriver.exe'
-
-# Definimos los criterios del pedido de datos
-area = ["Manzana"]
-var1 = ["Poblacio.C5P17"]
-selection = ["Provinci 1501"]
-filter_a = "Distrito"
-
-query=redapy.query_final(tipo="Frequency",var1=var1,area_break=area,selection=selection)
-redapy.make_query_2017(query,URL,ser_url).head(3)
-'''
-    La semana pasada - ¿Qué hacia?
-	resp	fre	ubigeo
-8	Hombre	45	15010800010010000401
-9	Mujer	31	15010800010010000401
-15	Hombre	62	15010800010010000601
-'''
-```
 
 ## Citado 
 
