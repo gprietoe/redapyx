@@ -28,7 +28,7 @@ import pandas as pd
 import redapyx
 
 redapyx.get(table_type='frequency',var1="vivienda.C2P13",area_break="distrito", selection="1501")
-
+```
 | Index | resp | fre | ubigeo |
 |-------|--------------|--------------|--------------|
 | 0     | Alquilada    | 26985        | 150101       |
@@ -38,7 +38,7 @@ redapyx.get(table_type='frequency',var1="vivienda.C2P13",area_break="distrito", 
 | ...   | ...	       | ...          | ...          |
 | 516   | Otra forma   | 107          | 150143       |
 
-```
+
 #### Tabla cruzada
 ```python
 import pandas as pd
