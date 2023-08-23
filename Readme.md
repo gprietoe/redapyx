@@ -26,17 +26,24 @@ Para acceder a la información del CPV 2017, redapyx se conecta con el **Procesa
 import pandas as pd
 import redapyx
 
->>> redapyxx.get(table_type='frequency',var1="vivienda.C2P8",area_break="distrito", selection="1501", pivot=True)
-
-    	No pagan por  Sí pagan por 
-     	el servicio   el servicio
-ubigeo  de agua       de agua
-150101	634	          73731
-150102	386	          16341
-150103	2597	      149089
-150104	45	          10908
-...
+>>> redapyxx.get(table_type='frequency',var1="vivienda.C2P8",
+                 area_break="distrito", selection="1501", pivot=True)
 ```
+    >>> redapyxx.get(table_type='frequency',var1="vivienda.C2P8",
+                 area_break="distrito", selection="1501", pivot=True)
+
+        	No pagan por  Sí pagan por 
+         	el servicio   el servicio
+    ubigeo  de agua       de agua
+    150101	634	          73731
+    150102	386	          16341
+    150103	2597	      149089
+    150104	45	          10908
+
+>>> redapyxx.get(table_type='frequency',var1="vivienda.C2P8",
+                 area_break="distrito", selection="1501", pivot=True)
+
+
 
 #### Tabla cruzada
 ```python
