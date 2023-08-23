@@ -29,46 +29,56 @@ import redapyx
 >>> redapyxx.get(table_type='frequency',var1="vivienda.C2P8",
                  area_break="distrito", selection="1501", pivot=True)
 ```
-    >>> redapyxx.get(table_type='frequency',var1="vivienda.C2P8",
-                 area_break="distrito", selection="1501", pivot=True)
-
-        	No pagan por  Sí pagan por 
-         	el servicio   el servicio
-    ubigeo  de agua       de agua
-    150101	634	          73731
-    150102	386	          16341
-    150103	2597	      149089
-    150104	45	          10908
-
->>> redapyxx.get(table_type='frequency',var1="vivienda.C2P8",
-                 area_break="distrito", selection="1501", pivot=True)
-
-
+            No pagan por el   Sí pagan por el
+    ubigeo 	servicio de agua  servicio de agua
+    150101	634	              73731
+    150102	386	              16341
+    150103	2597	          149089
+    150104	45	              10908
+    ...     ...               ...
+    150143  1473              92348
 
 #### Tabla cruzada
+También es posible solicitar la consulta de dos variables
 ```python
-import pandas as pd
-import redapyx
-
-# cargamos el resultado de nuestra consulta en la plataforma de Redatam
-df=pd.read_excel("Discapacidad 4 por edad_2017.xlsx")
-redapyx.cross_table(df, continuous=True, kind="descriptivos").head(3)
-
-"""
-        Sí, tiene discapacidad para moverse o caminar para usar brazos y piernas
-        Numero     Edad
-        de casos   promedio
-ubigeo		
-0101	1414       59.905941
-0102	1521       57.236029
-0103	858        60.085082
-"""
+redapyx.get(table_type='crosstab',var1="vivienda.C2P8", var2="vivienda.TOTELD",
+            area_break="distrito", selection="1501")
 ```
+                                                          freq
+    ubigeo	fila	          columna                     
+    150101	Sí pagan por el   Vivienda sin Adulto Mayor  64233
+            servicio de agua  Vivienda con Adulto Mayor	  9498
+                                                  Total  73731
+            No pagan por el   Vivienda sin Adulto Mayor	   514
+            servicio de agua  Vivienda con Adulto Mayor	   120
+       ...               ...                        ...    ...
+    150143	Sí pagan por el   Vivienda con Adulto Mayor   6309
+            servicio de agua                      Total  92348	
+            No pagan por el   Vivienda sin Adulto Mayor   1368
+            servicio de agua  Vivienda con Adulto Mayor	   105
+                                                  Total   1473
 
-## Advace users
+#### spatial data
+redapyx provee la posibilidad de agregar información georreferenciada a nivel de distrito, provincia o departamento, mediante la integración con datos espaciales del INEI, lo que son descargados en una carpeta denominada como "espatial_data" en la ruta desde donde se ejecuta el script. Si bien este es un proceso que puede realizarse manualmente, redapyx optimiza este paso para integrar la descarga, la limpieza y la visualización en una sola función.
+- Este resultado se logra agregando el parámetro output="geodata"
 
-#### Scrapping
+```python
+>>> gdf=redapyx.get(table_type='frequency',var1="poblacion.C5P86",area_break="distrito",
+                    selection="1501", pivot=True, output="geodata")
+    gdf.head(3)
+```
+    	    No se encuentra afiliado Sí, se encuentra afiliado	
+    ubigeo	a ningún seguro          a algún seguro
+    150119	25823	                 63372                       
+    150139	7168	                 20695
+    150140  55351                    273801
 
+    ubigeo	                                         geometry  fuente
+    150119  MULTIPOLYGON (((-76.93986 -12.24773, -76.93962...  INEI - CPV2017 RESULTADOS
+    150139  MULTIPOLYGON (((-77.14355 -11.79587, -77.15237...  INEI - CPV2017 RESULTADOS
+    150140  MULTIPOLYGON (((-76.94775 -12.11754, -76.94809...  INEI - CPV2017 RESULTADOS
+
+![alt text](https://github.com/gprietoe/redapyx/blob/main/notebooks/viz/Lima_metropolitana_seguro.png?raw=true "resultado_LM")
 
 ## Citado 
 
