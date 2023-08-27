@@ -30,8 +30,7 @@ SCRAPING FUNCTIONS THAT GET REDATAM OUTPUT AND CONVERT IT IN PANDAS DATAFRAME
 # def customshowwarning(message, category=None, filename=None, lineno=None, file=None, line=None):
 #     print(" ", str(message))
 
-def get(table_type=None,censo=None, var1=None,var2=None, selection=None,area_break=None, universe_filter=None, title=None, for_query=None, factor_exp=False,
-        service_path=None, test=False, output_info=True, print_query=False, pivot=False, output=None,path_file=None):
+def get(table_type=None,censo=None, var1=None,var2=None, selection=None,area_break=None, universe_filter=None, title=None, for_query=None, factor_exp=False, service_path=None, test=False, output_info=True, print_query=False, pivot=False, output=None,path_file=None):
     '''
     Parameters
     ----------
@@ -43,7 +42,12 @@ def get(table_type=None,censo=None, var1=None,var2=None, selection=None,area_bre
     area_break: Define the level of data output (departamento, provincia, distrito).
     universe_filter: Define specific filters for the data universe being queried.
     title: Define the title for the query.
-    for_query: Define additional parameters for the query.
+    for_query: Dictionary containing query elements, such as variables, logic expressions, categories, and operators.
+        - *variables*: A list of variables for the query
+        - *category*: A list of numeric values corresponding to each variable. There values match those assigned in the 2017 Census form.
+        - *logical_exp*: A list of logical expressions used to relate variables and categories (e.g., equal, greater than, less than, etc.)
+        - *operator*: A list of operators that combine two or more variables, their categories, and logical expressions. This enables the creation of complex queries for Redatam.
+        
     factor_exp: Boolean, if True, applies a specific factor created by INEI to the query; otherwise False.
     service_path: Define the path for the service to be called. After selenium 4.10 it's not longer needed because it uses SeleniumManager to deal with the right driver's version.
     test: Boolean, if True, runs the query in test mode; otherwise False.
@@ -55,10 +59,11 @@ def get(table_type=None,censo=None, var1=None,var2=None, selection=None,area_bre
     
 
     Returns:
-    Returns a dataframe containing data from Redatam. If output is "geodata", a geodataframe containing the result is returned
+    Returns a dataframe containing data from Redatam. If output is set as "geodata", a GeoDataframe containing the result and its geometry is returned
     '''
     # selects census databases. not properly implemented yet
     censo="2017"
+            
     if (censo=="2017") & (area_break in ["departamento","provincia","distrito"]):
         url = "https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017DI&ITEM=PROGRED&lang=esp"
     else: 
@@ -242,7 +247,30 @@ def _build_of_variables2(var1,var2):
     return "    AS CROSSTABS OF {} BY {}".format((", ".join(filter(lambda x: str(x) if x is not None else '',var1))),(", ".join(filter(lambda x: str(x) if x is not None else '',var2)))) if var1 or var2 else ""
 
 def _build_of_for(for_query_d):
+    """
+    Generates a formatted "FOR" query line for a given query dictionary.
+    
+    Parameters:
+    -----------
+    for_query_d : dict
+        Dictionary containing query elements, such as variables, logic expressions, categories, and operators.
 
+    Returns:
+    --------
+    line_final : str
+        Formatted "FOR" query line.
+        
+    Notes:
+    ------
+    - `str_test`, `split_clean_append_var`, `logic_expression_trans`, `category_trans`, and `operator_trans` are assumed to be predefined helper functions.
+    - The function assumes that the dictionary `for_query_d` contains specific keys that are used in the helper functions.
+
+    Examples:
+    ---------
+    >>> _build_of_for({"variables": ["var1", "var2"], ...})
+    "FOR var1 == value1 && var2 <= value2 ..."
+    
+    """
     variables_m=str_test(dict_t=for_query_d, var_t="variables")
     variables_f=[split_clean_append_var(_vars) for _vars in variables_m]
 

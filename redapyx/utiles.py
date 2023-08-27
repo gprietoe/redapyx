@@ -4,6 +4,16 @@ import pandas as pd
 # Se redefine el string de la varible como lista de un solo valor (ya que asi funciona para la union de caracteres del query) asignandole el primer valor de acuerdo al diccionario que es un STRING
 # el segundo valor seria númerico (1,2,3,4,5) por si en algun momento queremos utilizarlo de esa manera.
 def set_string_for_query(string_name, param_area=False):
+    """
+    Sets a query string based on the given string name and area parameter.
+
+    Parameters:
+        string_name (str): The name of the geographical unit (e.g., DEPARTAMENTO, PROVINCIA, etc.).
+        param_area (bool): If True, returns the string name for the specified area. Default is False.
+
+    Returns:
+        list: A list containing the query string(s).
+    """
     
     string_name_dic = {'DEPARTAMENTO':['Departam',1,2],
                        'PROVINCIA':['Provinci',2,4],
@@ -21,6 +31,16 @@ def set_string_for_query(string_name, param_area=False):
 
 ### CLEANING THE CENSUS VARIABLES ACCORDING TO REDATAM 
 def set_var_string_for_query(string_var):
+    """
+    Cleans and formats variable strings according to Redatam conventions.
+    
+    Parameters:
+        string_var (str): The variable name (e.g., VIVIENDA, HOGAR, POBLACION).
+    
+    Returns:
+        str: The formatted variable name.
+    """
+
     string_var_dic = {'VIVIENDA':['Vivienda',1],
                        'HOGAR':['Hogar',2],
                        'POBLACION':['Poblacio',3]}
@@ -31,6 +51,15 @@ def set_var_string_for_query(string_var):
     return string_res
 
 def split_clean_append_var(var0):
+    """
+    Splits, cleans, and appends variable names.
+    
+    Parameters:
+        var0 (str): The initial variable name.
+    
+    Returns:
+        str: The cleaned and appended variable name.
+    """
     
     var1=set_var_string_for_query(var0.split(".")[0])
     var2=var0.split(".")[1]
@@ -40,6 +69,16 @@ def split_clean_append_var(var0):
 
 #### FUNCTIONS FOR CLEANING _build_of_for
 def str_test(dict_t, var_t):
+    """
+    Checks the type of the value for a specified key in a dictionary.
+    
+    Parameters:
+        dict_t (dict): The dictionary to check.
+        var_t (str): The key to look up.
+    
+    Returns:
+        list: The value as a list.
+    """   
     if type(dict_t.get(var_t))==str:
         test_r=[dict_t.get(var_t)]
     else:
@@ -47,6 +86,16 @@ def str_test(dict_t, var_t):
     return test_r
         
 def logic_expression_trans(for_query_d,index_i):
+    """
+    Translates a logical expression to its corresponding symbol.
+    
+    Parameters:
+        for_query_d (dict): The query dictionary.
+        index_i (int): The index position of the logical expression in the list.
+    
+    Returns:
+        str: The corresponding logical symbol.
+    """    
     logic_d={"equal":"=",
              "greater than":">",
              "less than":"<",
@@ -65,6 +114,17 @@ def logic_expression_trans(for_query_d,index_i):
     return logic_ex
 
 def operator_trans(for_query_d, index_i):
+    """
+    Translates the query operator to its uppercase form.
+    
+    Parameters:
+        for_query_d (dict): The query dictionary.
+        index_i (int): The index position of the operator in the list.
+    
+    Returns:
+        str: The translated operator in uppercase.
+    """
+
     operator_m=[p.upper() for p in str_test(dict_t=for_query_d, var_t="operator")]
     
     #test number of items of the loop 
@@ -76,6 +136,17 @@ def operator_trans(for_query_d, index_i):
     return ope_ex
 
 def category_trans(for_query_d, index_i, variable_f):
+    """
+    Translates category values for variables.
+    
+    Parameters:
+        for_query_d (dict): The query dictionary.
+        index_i (int): The index position of the category in the list.
+        variable_f (str): The variable associated with the category.
+    
+    Returns:
+        str: The translated category value.
+    """    
     category_m=str_test(dict_t=for_query_d, var_t="category")
      
     #test number of items of the loop 
@@ -89,7 +160,13 @@ def category_trans(for_query_d, index_i, variable_f):
 
 def clean_directorio_ccpp(path, nacional=False):
     '''
-    Returns a Dataframe with data from all settlements according with the "Directorio Nacional de Centros Poblados 2017". The information is available on https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib1541/index.htm
+    Cleans and returns a Dataframe with data according with the "Directorio Nacional de Centros Poblados 2017". The information is available on https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib1541/index.htm
+    Parameters:
+        path (str): File path to the Excel dataset.
+        nacional (bool): If True, the function reads from multiple departmental Excel files. Default is False.
+
+    Returns:
+        DataFrame: The cleaned DataFrame containing settlement data.
     '''
     col_names1 = ['codigo', 'ccpp_nombre', 'region_natural', 'altitud', 'pob_censada', 'hob_censados', 'muj_censados', 'viv_particulares', 'viv_ocupadas', 'viv_des']
     if nacional==True:
