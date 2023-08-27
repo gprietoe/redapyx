@@ -43,7 +43,7 @@ def download_gpkg_data(level=None):
             rar_file.write(response.content)
 
     with rarfile.RarFile(data_rar_path) as rar:
-    rar.extract(f"{level}.gpkg", os.path.join(os.path.abspath(os.getcwd()),"spatial_data"))
+        rar.extract(f"{level}.gpkg", os.path.join(os.path.abspath(os.getcwd()),"spatial_data"))
 
     file_path = os.path.join(os.path.abspath(os.getcwd()),"spatial_data",f"{level}.gpkg")
 
