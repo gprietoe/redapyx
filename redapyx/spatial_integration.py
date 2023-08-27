@@ -5,8 +5,8 @@ def find_file_path(file_name):
     '''
     Search for a given file name within the directories in the PATH environment variable.
 
-    :param file_name: Name of the file to search for.
-    :return: Full path to the file if found; otherwise None.
+    file_name: Name of the file to search for.
+    return: Full path to the file if found; otherwise None.
     '''
     # List of directories in the PATH environment variable
     path_dirs = os.environ['PATH'].split(os.pathsep)
@@ -22,8 +22,8 @@ def download_gpkg_data(level=None):
     '''
     Downloads the .rar file for the specified level from a specific URL and extracts the .gpkg file.
 
-    :param level: Level of spatial data (e.g., Departamento, Provincia, Distrito).
-    :return: None, the function saves the .gpkg file in the appropriate directory.
+    level: Level of spatial data (e.g., Departamento, Provincia, Distrito).
+    return: None, the function saves the .gpkg file in the appropriate directory.
     '''
     import urllib3
     import rarfile
@@ -42,20 +42,33 @@ def download_gpkg_data(level=None):
         with open(data_rar_path, 'wb') as rar_file:
             rar_file.write(response.content)
 
-    rarfile.UNRAR_TOOL = find_file_path(file_name='unrar.exe')
-
     with rarfile.RarFile(data_rar_path) as rar:
-        rar.extract(f"{level}.gpkg", os.path.join(os.path.abspath(os.getcwd()),"spatial_data"))
+    rar.extract(f"{level}.gpkg", os.path.join(os.path.abspath(os.getcwd()),"spatial_data"))
 
-    os.remove(data_rar_path)
+    file_path = os.path.join(os.path.abspath(os.getcwd()),"spatial_data",f"{level}.gpkg")
+
+    if os.path.exists(file_path):
+    file_size = os.path.getsize(file_path)
+        if file_size<=1000:
+            os.remove(file_path)
+            rarfile.UNRAR_TOOL = find_file_path(file_name='unrar.exe')
+            with rarfile.RarFile(data_rar_path) as rar:
+                rar.extract(f"{level}.gpkg", os.path.join(os.path.abspath(os.getcwd()),"spatial_data"))
+            os.remove(data_rar_path)
+            return None
+        else:
+            os.remove(data_rar_path)
+            return None
+    else:
+        raise Exception("The .rar file hasn't be downloaded successfully")
     return
 
 def make_output(gdf, level):
     '''
     Builds the output GeoDataFrame based on the level provided.
 
-    :param gdf: Input GeoDataFrame containing the spatial data.
-    :param level: Level of spatial data (e.g., Departamento, Provincia, Distrito).
+    gdf: Input GeoDataFrame containing the spatial data.
+    level: Level of spatial data (e.g., Departamento, Provincia, Distrito).
     :return: Modified GeoDataFrame containing the data and the selected variables for the specified level.
     '''
     ubigeo_names = ['nombdep', 'nombprov', 'nombdist']
