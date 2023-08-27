@@ -48,7 +48,7 @@ def download_gpkg_data(level=None):
     file_path = os.path.join(os.path.abspath(os.getcwd()),"spatial_data",f"{level}.gpkg")
 
     if os.path.exists(file_path):
-    file_size = os.path.getsize(file_path)
+        file_size = os.path.getsize(file_path)
         if file_size<=1000:
             os.remove(file_path)
             rarfile.UNRAR_TOOL = find_file_path(file_name='unrar.exe')
