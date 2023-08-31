@@ -55,7 +55,7 @@ redapyx.get(table_type='crosstab',var1="vivienda.C2P8", var2="vivienda.TOTELD",
     150143	Sí pagan por el   Vivienda con Adulto Mayor   6309
             servicio de agua                      Total  92348	
             No pagan por el   Vivienda sin Adulto Mayor   1368
-            servicio de agua  Vivienda con Adulto Mayor	   105
+            servicio de agua  Vivienda con Adulto Mayor    105
                                                   Total   1473
 
 #### spatial data
@@ -73,7 +73,7 @@ redapyx provee la posibilidad de agregar información georreferenciada a nivel d
     150139	7168	                 20695
     150140  55351                    273801
 
-    ubigeo	                                         geometry  fuente
+    ubigeo	                                         geometry                     fuente
     150119  MULTIPOLYGON (((-76.93986 -12.24773, -76.93962...  INEI - CPV2017 RESULTADOS
     150139  MULTIPOLYGON (((-77.14355 -11.79587, -77.15237...  INEI - CPV2017 RESULTADOS
     150140  MULTIPOLYGON (((-76.94775 -12.11754, -76.94809...  INEI - CPV2017 RESULTADOS
