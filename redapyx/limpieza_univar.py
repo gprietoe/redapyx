@@ -71,7 +71,7 @@ def analys_cont_var(df, kind, start,interval, pivot, column, values):
     
     return df_f
 
-def frequency(df, pivot=False, continuous=False, kind=None, start=0, interval=None):
+def frequency(df, pivot=False, continuous=False, kind=None, start=0, interval=None, area_break=None):
     """
     #Docstring:
     Permite de organizar los datos descargados de la plataforma de REDATAM - (INEI) en una formato de base datos de dos dimensiones.
@@ -116,9 +116,11 @@ def frequency(df, pivot=False, continuous=False, kind=None, start=0, interval=No
              )
 
     else:
-        
         try:
             df_f["fre"]=df_f.fre.replace(" ","", regex=True).astype(int)
+            
+            if area_break=="manzana":
+                df_f=cleaning_manzana(df_f)    
             
             if pivot==True:
                 df_f=(df_f.pivot(index="ubigeo",columns="resp", values="fre").
@@ -128,20 +130,11 @@ def frequency(df, pivot=False, continuous=False, kind=None, start=0, interval=No
             else:
                 return df_f
         except:
-            print("Existe en el resultado tablas vacias en alguno de los UBIGEOS")
-            
-            if pivot==True:
-                df_f=(df_f.pivot(index="ubigeo",columns="resp", values="fre").
-                      fillna(0).
-                      astype(int)
-                     )
-            else:
-                return df_f
-            return df_f
+            raise Exception("Existe en el resultado tablas vacias en alguno de los UBIGEOS")
     
     return df_f
 
-def cross_table(df, filter_var=False, pivot=False, continuous=False, kind=None, start=0, interval=None):
+def cross_table(df, filter_var=False, pivot=False, continuous=False, kind=None, start=0, interval=None, area_break=None):
     """
     #Docstring:
     Permite de organizar los datos descargados de la plataforma de REDATAM - (INEI) en una formato de base datos de dos dimensiones.
@@ -196,15 +189,19 @@ def cross_table(df, filter_var=False, pivot=False, continuous=False, kind=None, 
 
     if continuous==True:
         list_var, df_f=clean_continuous_var(df_f, column='fila')
+        if area_break=="manzana":
+                df_f=cleaning_manzana(df_f)
         df_f=(df_f.
               groupby("ubigeo").
               apply(analys_cont_var, kind, start, interval, pivot, column='fila', values=list_var).
               fillna(0).
               reset_index(level=1, drop=True)
-             )
-        
+             )   
     else:
         if filter_var==False:
+            if area_break=="manzana":
+                df_f=cleaning_manzana(df_f)
+            
             df_f=(df_f.
                       groupby("ubigeo").
                       apply(multi_index)
@@ -230,6 +227,8 @@ def cross_table(df, filter_var=False, pivot=False, continuous=False, kind=None, 
             else:
                 df_f
         else:
+            if area_break=="manzana":
+                df_f=cleaning_manzana(df_f)
             df_f=(multi_index(df_f).
                  assign(freq=lambda df_:df_.freq.replace("-","0",regex=True).
                         replace(r'(?<=\d)\s+(?=\d)', '', regex=True)).
@@ -241,11 +240,18 @@ def cross_table(df, filter_var=False, pivot=False, continuous=False, kind=None, 
                        )
              
             if pivot==True:
-                df_f=(df_f.
+                if area_break=="manzana":
+                    df_f=(df_f.
                       reset_index().
-                      pivot(index=["ubigeo"],columns=["filtro","fila","columna"], values="freq").
+                      pivot(index=["ubigeo","ubigeo_re"],columns=["filtro","fila","columna"], values="freq").
                       fillna(0)
-                     )
+                     )                
+                else:
+                    df_f=(df_f.
+                          reset_index().
+                          pivot(index=["ubigeo"],columns=["filtro","fila","columna"], values="freq").
+                          fillna(0)
+                         )
             else:
                 df_f
     return df_f

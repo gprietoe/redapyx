@@ -1,0 +1,13 @@
+path=r'C:\Users\Guillermo\Desktop\Python\05. Lib gestión pública\notebooks\spatial_data'
+file_path=os.path.join(path,"Manzana Lima 2017.zip")
+gdf_mz=gpd.read_file(file_path)
+
+## corregimos las manzanas que tienen el código errado y solo contiene 10 o 14 digitos y los que se les agregó un "0" al final (17 casos)
+gdf_mz["llave_mzs_re"]=gdf_mz.ubigeo+gdf_mz.codccpp+gdf_mz.zona+gdf_mz.manzana
+
+gdf_mz['letra2']=gdf_mz.codigo.str[18:19]
+gdf_mz['mz_len']=gdf_mz.manzana.str.len()
+gdf_mz['llave_mz_len']=gdf_mz.llave_mzs.str.len()
+
+gdf_mz['llave_mzs_re']=np.where((gdf_mz.mz_len==3) & (gdf_mz.llave_mz_len==19) & (gdf_mz.letra2=="Ñ"), gdf_mz.llave_mzs_re+gdf_mz.letra2, gdf_mz.llave_mzs_re)
+gdf_mz=gdf_mz.drop_duplicates("llave_mzs_re", keep=False)

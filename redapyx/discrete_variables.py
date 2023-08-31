@@ -69,3 +69,19 @@ def cleaning_list_ubigeos_des(list_ubi, frequency=False):
     list_ubi2 = [df for i, df in enumerate(list_ubi) if i not in list_index_to_remove]  
     
     return list_ubi2
+
+
+def cleaning_manzana(df_mz):
+    df=df_mz.copy()
+    dic_lim={'00':'','01':'A','02':'B','03':'C','04':'D','05':'E','06':'F','07':'G','08':'H','09':'I',
+             '10':'J','11':'K','12':'L','13':'M','14':'N','15':'Ñ','16':'O','17':'P','18':'Q','19':'R',
+             '20':'S','21':'T','22':'U','23':'V','24':'W','25':'X','26':'Y','27':'Z'}
+
+    ## limpiamos los último dos dígitos del ubigeo
+    df["mz_c"]=df.ubigeo.str[18:20]
+    df['mz_c']=df['mz_c'].replace(dic_lim, regex=True)
+    df["ubigeo"]=df.ubigeo.str[0:18]+df.mz_c
+    del df['mz_c']
+    
+    
+    return df

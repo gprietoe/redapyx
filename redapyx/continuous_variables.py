@@ -45,7 +45,7 @@ def cal_intervalos(df, valor_inicio, intervalo, column="resp"):
     df=(df.
         rename({"resp2":column},axis=1).
         groupby(["ubigeo","lim_s",column]).
-        sum().  ## BUG The default value of numeric_only in DataFrameGroupBy.sum is deprecated.
+        sum(numeric_only=True).  ## BUG The default value of numeric_only in DataFrameGroupBy.sum is deprecated.
         reset_index(["lim_s",column]).
         sort_values("lim_s").
         copy()

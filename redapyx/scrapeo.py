@@ -39,7 +39,8 @@ def get(table_type=None,censo=None, var1=None,var2=None, selection=None,area_bre
     var1: Define the first variable. 
     var2: Define the second variable; only applies when the crosstab type of query is selected.
     selection: Filters and selects data from specific geographic locations using INEI's ubigeo.
-    area_break: Define the level of data output (departamento, provincia, distrito).
+    area_break: Define the level of data output (departamento, provincia, distrito, centro poblado o manzana).
+        In case of the level "manzana", the last two numbers of Ubigeo are replaced by the corresponding letter from the alphabet. For example, '01' becomes 'A', '02' becomes 'B', '03' becomes 'C' and so on up to 27, which becomes 'Z'. That happens because the spatial data for squares is coded as 18 numbers or 18 numbers plus a letter from the alphabet.
     universe_filter: Define specific filters for the data universe being queried.
     title: Define the title for the query.
     for_query: Dictionary containing query elements, such as variables, logic expressions, categories, and operators.
@@ -70,24 +71,32 @@ def get(table_type=None,censo=None, var1=None,var2=None, selection=None,area_bre
         url = "https://censos2017.inei.gob.pe/bininei/RpWebStats.exe/CmdSet?BASE=CPV2017&ITEM=PROGRED&lang=esp"
     
     query0=build_query(table_type=table_type, censo=censo, var1=var1, var2=var2,
-                       selection=selection, area_break=area_break,universe_filter=universe_filter, title=title,
+                       selection=selection, area_break=area_break, universe_filter=universe_filter, title=title,
                        for_query=for_query, factor_exp=factor_exp)
     
     if print_query==True:
         print(query0[0])
-        query1=make_query(query0, service_path=service_path, service_url=url, table_type=table_type, pivot=pivot, test=test, output_info=output_info)
+        query1=make_query(query0,
+                          service_path=service_path, service_url=url,
+                          table_type=table_type, pivot=pivot, test=test, output_info=output_info, area_break=area_break)
     else:
-        query1=make_query(query0, service_path=service_path, service_url=url, table_type=table_type, pivot=pivot, test=test, output_info=output_info)
+        query1=make_query(query0,
+                          service_path=service_path, service_url=url,
+                          table_type=table_type, pivot=pivot, test=test, output_info=output_info, area_break=area_break)
 
     if output=="geodata":
-        
-        gdf=redapyx_output(df=query1, path_file=path_file, area_break=area_break)
-        return gdf
-
+        if pivot==True:
+            if area_break in ["departamento","provincia","distrito","manzana"]:
+                gdf=redapyx_output(df=query1, path_file=path_file, area_break=area_break, selection=selection)
+                return gdf
+            else:
+                raise Exception("Geodata for the level 'ccpp' is not yet implemented") ### this implementation needs to use OWS
+        else:
+            raise Exception("To merge data from Redatam with the spatial data, the 'pivot' parameter must be set to True")
     else:
         return query1
         
-def make_query(query, service_path=None, service_url=None, table_type=None, pivot=False, test=False, output_info=True): # scraping function that makes query to redatam server
+def make_query(query, service_path=None, service_url=None, table_type=None, pivot=False, test=False, output_info=True , area_break=None): # scraping function that makes query to redatam server
     begin_time = datetime.datetime.now()
 
     if output_info==True:  print('Scraping starts')#warnings.showwarning = customshowwarning(message='Scraping starts')  
@@ -141,7 +150,8 @@ def make_query(query, service_path=None, service_url=None, table_type=None, pivo
             #cleaning all dataframes
             #it calls frequency if query is a frequency type or crosstab if query is a crosstab type
             begin_time = datetime.datetime.now()         
-            table_final = frequency(table_final,pivot=pivot) if table_type=='frequency' else cross_table(table_final,pivot=pivot) if table_type=='crosstab' else table_final 
+            table_final = frequency(table_final,pivot=pivot, area_break=area_break) if table_type=='frequency' else cross_table(table_final, pivot=pivot, area_break=area_break) if table_type=='crosstab' else table_final 
+            
             tiempo = datetime.datetime.now() - begin_time
             message='Table was cleaned successfully in: '+ str(tiempo)
             print(message)
