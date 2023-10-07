@@ -17,6 +17,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import WebDriverException
 
 
 from .utiles import *
@@ -30,7 +31,7 @@ SCRAPING FUNCTIONS THAT GET REDATAM OUTPUT AND CONVERT IT IN PANDAS DATAFRAME
 # def customshowwarning(message, category=None, filename=None, lineno=None, file=None, line=None):
 #     print(" ", str(message))
 
-def get(table_type=None,censo=None, var1=None,var2=None, selection=None,area_break=None, universe_filter=None, title=None, for_query=None, factor_exp=False, service_path=None, test=False, output_info=True, print_query=False, pivot=False, output=None,path_file=None):
+def get(table_type=None,censo=None, var1=None,var2=None, selection=None,area_break=None, universe_filter=None, title=None, for_query=None, factor_exp=False, define_var=False, service_path=None, test=False, output_info=True, print_query=False, pivot=False, output=None,path_file=None):
     '''
     Parameters
     ----------
@@ -72,7 +73,7 @@ def get(table_type=None,censo=None, var1=None,var2=None, selection=None,area_bre
     
     query0=build_query(table_type=table_type, censo=censo, var1=var1, var2=var2,
                        selection=selection, area_break=area_break, universe_filter=universe_filter, title=title,
-                       for_query=for_query, factor_exp=factor_exp)
+                       for_query=for_query, factor_exp=factor_exp,define_var=define_var)
     
     if print_query==True:
         print(query0[0])
@@ -146,6 +147,7 @@ def make_query(query, service_path=None, service_url=None, table_type=None, pivo
         print(message)
         #warnings.showwarning = customshowwarning(message=message)
         table_final = pd.concat(tables) # concatenate all dataframes in one dataframe
+        # return table_final
         try:
             #cleaning all dataframes
             #it calls frequency if query is a frequency type or crosstab if query is a crosstab type
@@ -156,8 +158,9 @@ def make_query(query, service_path=None, service_url=None, table_type=None, pivo
             message='Table was cleaned successfully in: '+ str(tiempo)
             print(message)
             #warnings.showwarning = customshowwarning(message=message)
-        except: 
-            raise Exception("Error cleaning tables")
+        except:
+            message="Error cleaning tables"
+            print(message)
         if test == True:
             return table_final, tiempo
         else:
@@ -170,11 +173,11 @@ def make_query(query, service_path=None, service_url=None, table_type=None, pivo
 FUNCTIONS THAT GENERATE QUERY TEXT FOR REDATAM COMMAND PROMPT 
 MODIFIED VERSION OF pyredatam.py CHECK https://github.com/abenassi/pyredatam/blob/master/pyredatam/pyredatam.py
 """
-def build_query(table_type=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, factor_exp=None):
+def build_query(table_type=None,censo=None,var1=None,var2=None,selection=None,area_break=None,universe_filter=None, title=None, for_query=None, factor_exp=None,define_var=None):
     '''    
     '''
     # modify values from area_break argument so they can be compatible with REDATAM 2017
-    area_break=set_string_for_query(area_break,param_area=True)
+    area_break=set_string_for_query(area_break,param_area=True) if area_break else area_break
     
     # modify values from selection argument so they can be compatible with REDATAM 2017
     if selection!=None:
@@ -182,21 +185,23 @@ def build_query(table_type=None,censo=None,var1=None,var2=None,selection=None,ar
     
     var1=[split_clean_append_var(var1)]
     if table_type=="frequency": # frequency    
-        return frequency_query(var1,selection,area_break,universe_filter,title,for_query,factor_exp), censo
+        return frequency_query(var1,selection,area_break,universe_filter,title,for_query,factor_exp,define_var), censo
     if table_type=="crosstab": # crosstab
         var2=[split_clean_append_var(var2)]
-        return crosstab_query(var1,var2,selection,area_break,universe_filter,title,for_query,factor_exp), censo
+        return crosstab_query(var1,var2,selection,area_break,universe_filter,title,for_query,factor_exp,define_var), censo
     else:
-        raise Exception("No seleccionó tipo de consulta")
+        raise Exception("No seleccionó tipo de consulta válido")
         return None
     
     
 # functions that write querys in redatam programing code
 
 def frequency_query(var1,selection,area_break,
-                   universe_filter, title,for_query,factor_exp):
+                   universe_filter, title,for_query,factor_exp,define_var):
     # RUNDEF section
     lines = _build_rundef_section(selection,universe_filter)
+    if define_var!=None:
+        lines.append(_build_define_var(define_var))
     # TABLE section
     lines.append("TABLE TABLE1")
 #     lines.extend(_build_title(title))
@@ -210,10 +215,10 @@ def frequency_query(var1,selection,area_break,
     return "\n".join(lines)
 
 def crosstab_query(var1,var2,selection,area_break,
-                   universe_filter,title,for_query,factor_exp):
+                   universe_filter,title,for_query,factor_exp,define_var):
     # RUNDEF section
     lines = _build_rundef_section(selection,universe_filter)
-
+    lines.append(_build_define_var(define_var))
     # TABLE section
     lines.append("TABLE TABLE1")
     lines.extend(_build_title(title))
@@ -232,6 +237,22 @@ def _build_rundef_section(selection=None, universe_filter=None):
     lines.append("")
     return lines
 
+def _build_define_var(define_var=None):
+    lines = []
+    try:
+        # Abrir el archivo de texto en modo lectura
+        with open(define_var, 'r') as archivo:
+            # Leer el contenido del archivo línea por línea
+            contenido = archivo.readlines()
+        # Imprimir el contenido con el espaciado original
+        for linea in contenido:
+            lines.append(linea)
+    except FileNotFoundError:
+        print(f"El archivo '{nombre_archivo}' no fue encontrado.")
+    except Exception as e:
+        print(f"Ocurrió un error: {e}")
+    return "".join(lines) if lines else ""
+
 def _build_universe_filter(universe_filter):
     return "    UNIVERSE " + universe_filter if universe_filter else ""
 
@@ -242,7 +263,7 @@ def _build_area_break(area_break):
     return "    AREABREAK {}".format(", ".join(area_break)) if area_break else ""
 
 def _build_selection_inline(selection):
-    return "    SELECTION INLINE, {}".format(", ".join(selection)) if selection else ""
+    return "    SELECTION INLINE, " + selection if selection else ""
 
 def _build_of_variables(var1):
     if type(var1) != list:

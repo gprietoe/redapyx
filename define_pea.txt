@@ -1,0 +1,20 @@
+DEFINE Poblacio.PEA AS SWITCH
+    INCASE Poblacio.C5P16 = 1
+    ASSIGN 1
+    INCASE Poblacio.C5P17 = 1
+    ASSIGN 1
+    INCASE Poblacio.C5P17 = 2
+    ASSIGN 1
+    INCASE Poblacio.C5P17 = 3
+    ASSIGN 1
+    INCASE Poblacio.C5P17 = 4
+    ASSIGN 1
+    INCASE Poblacio.C5P17 = 5
+    ASSIGN 1
+    INCASE Poblacio.C5P18 = 1
+    ASSIGN 0
+    INCASE Poblacio.C5P18 = 2
+    ASSIGN 2
+    TYPE INTEGER
+    RANGE 0-2
+

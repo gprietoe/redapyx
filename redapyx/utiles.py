@@ -14,18 +14,26 @@ def set_string_for_query(string_name, param_area=False):
     Returns:
         list: A list containing the query string(s).
     """
-    
     string_name_dic = {'DEPARTAMENTO':['Departam',1,2],
                        'PROVINCIA':['Provinci',2,4],
                        'DISTRITO':['Distrito',3,6],
-                       'MANZANA':['Manzana',4,None],
-                       'CENTRO POBLADO':['Cenpob',5,None]}
+                       'MANZANA':['Manzana',4,20],
+                       'CENTRO POBLADO':['Cenpob',5,10]}
     
     if param_area==True:
         string_res=[string_name_dic[[string_name.upper().strip()][0]][0]]
     else:
-        string_res=[k_values[0]+" "+string_name for key, k_values in string_name_dic.items() if k_values[2]==len(string_name)]
-    
+        if isinstance(string_name, list):
+            string_res_lista=[]
+            for i in string_name:
+                temp=[k_values[0] + " " + i for key, k_values in string_name_dic.items() if k_values[2] == len(i)]
+                temp=temp[0]
+                string_res_lista.append(temp)
+            string_res = ", ".join(string_res_lista)
+        else:    
+            string_res=[k_values[0] + " " + string_name for key, k_values in string_name_dic.items() if k_values[2] == len(string_name)]
+            string_res=string_res[0]
+            
     return string_res
 
 
